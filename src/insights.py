@@ -7,13 +7,15 @@ import joblib
 from collections import defaultdict
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
+from src.preprocess import clean_text
 
 ASPECT_LEXICON = {
     "Product Quality": [
         "quality", "build", "material", "durability", "durable", "sturdy",
         "battery", "screen", "display", "hardware", "performance", "defect",
         "defective", "broke", "broken", "lag", "crash", "overheat", "heat",
-        "finish", "casing", "hinge", "pixel", "microphone", "sound"
+        "finish", "casing", "hinge", "pixel", "microphone", "sound", "product", "device", "item",
+        "damage", "faulty", "malfunction", "works perfectly", "stopped working", "does not work", "turn on"
     ],
     "Customer Support": [
         "support", "service", "agent", "representative", "rep", "call", "chat",
@@ -23,7 +25,7 @@ ASPECT_LEXICON = {
     "Delivery & Packaging": [
         "delivery", "shipping", "courier", "package", "packaging", "box",
         "wrap", "transit", "ship", "dispatch", "arrive", "arrival", "late",
-        "delay", "delayed", "lost", "crushed", "doorstep", "tracking"
+        "delay", "delayed", "lost", "crushed", "doorstep", "tracking", "delivered", "parcel", "received"
     ],
     "Pricing & Value": [
         "price", "pricing", "cost", "expensive", "cheap", "value", "money",
@@ -33,7 +35,7 @@ ASPECT_LEXICON = {
     "Usability & UI": [
         "app", "software", "ui", "interface", "setup", "pair", "pairing",
         "bluetooth", "navigate", "navigation", "button", "control", "ergonomic",
-        "ergonomics", "bug", "glitch", "freeze", "display", "setting", "manual"
+        "ergonomics", "bug", "glitch", "freeze", "display", "setting", "manual", "instructions", "user guide", "easy to use", "hard to use"
     ]
 }
 
@@ -42,70 +44,85 @@ class AspectSentimentAnalyzer:
     
     def __init__(self, aspect_lexicon=None):
         self.aspect_lexicon = aspect_lexicon or ASPECT_LEXICON
+        self.normalized_keywords = {
+            aspect: [(kw, clean_text(kw, remove_stopwords=False)) for kw in keywords]
+            for aspect, keywords in self.aspect_lexicon.items()
+        }
         
     def detect_aspects(self, text: str):
         """Identifies which predefined business aspects are referenced in the review."""
-        text_lower = text.lower()
+        # Match complete normalized tokens/phrases: arrived -> arriv, not arriveed.
+        # Boundaries still prevent app from matching apple or application fragments.
+        normalized = ' ' + clean_text(text, remove_stopwords=False) + ' '
         found_aspects = {}
         
-        for aspect, keywords in self.aspect_lexicon.items():
-            matches = [kw for kw in keywords if re.search(r'\b' + re.escape(kw), text_lower)]
+        for aspect, keywords in self.normalized_keywords.items():
+            matches = [kw for kw, stem in keywords if ' ' + stem + ' ' in normalized]
             if matches:
                 found_aspects[aspect] = list(set(matches))
                 
         return found_aspects
 
+    def contexts(self, review_text):
+        # Contrast markers work with or without a preceding comma. Split separate
+        # subjects joined by "and" so good delivery does not mask a broken app.
+        clauses = re.split(
+            r'[.!?;\n]+|\b(?:but|however|although|though|whereas|while|yet)\b|'
+            r'\band\s+(?=(?:(?:the|my|their|this)\s+)?(?:app|product|device|battery|screen|delivery|shipping|packaging|support|service|price|quality|interface)\b)',
+            review_text, flags=re.IGNORECASE)
+        contexts = {}
+        for clause in clauses:
+            if not clause.strip():
+                continue
+            for aspect, keywords in self.detect_aspects(clause).items():
+                entry = contexts.setdefault(aspect, {'keywords': set(), 'clauses': []})
+                entry['keywords'].update(keywords)
+                entry['clauses'].append(clause.strip(' ,'))
+        return contexts
+
+    def analyze_many(self, texts, classify):
+        contexts = [self.contexts(text) for text in texts]
+        snippets, owners = [], []
+        for index, aspects in enumerate(contexts):
+            for aspect, info in aspects.items():
+                for clause in info['clauses']:
+                    snippets.append(clause)
+                    owners.append((index, aspect))
+        predictions = classify(snippets) if snippets else []
+        grouped = defaultdict(list)
+        for owner, prediction in zip(owners, predictions):
+            grouped[owner].append(prediction)
+        output = []
+        for index, aspects in enumerate(contexts):
+            result = {}
+            for aspect, info in aspects.items():
+                predictions = grouped[index, aspect]
+                labels = {p['sentiment'] for p in predictions}
+                mixed = 'Positive' in labels and 'Negative' in labels
+                mean = {label: sum(p['probabilities'].get(label, 0) for p in predictions) / len(predictions)
+                        for label in ['Negative', 'Neutral', 'Positive']}
+                label = 'Mixed' if mixed else max(mean, key=mean.get)
+                result[aspect] = {'keywords': sorted(info['keywords']), 'snippet': '. '.join(info['clauses']),
+                                  'sentiment': label, 'confidence': None if mixed else round(mean[label], 3)}
+            output.append(result)
+        return output
+
     def analyze_aspect_sentiments(self, review_text: str, sentiment_classifier=None, vectorizer=None):
-        """
-        Splits review into clauses/sentences and attributes sentiment to specific aspects.
-        Returns dictionary of aspect -> {sentiment, confidence, matched_text}.
-        """
-        detected = self.detect_aspects(review_text)
-        if not detected:
-            return {}
-            
-        # Split on sentence boundaries and contrastive conjunctions (, but / , however / ;)
-        clauses = re.split(r'(?:[.!?;]|\s*,\s*(?:but|however|although|though|whereas|while)\s+)', review_text, flags=re.IGNORECASE)
-        clauses = [c.strip() for c in clauses if c.strip()]
-        aspect_results = {}
-        
-        for aspect, keywords in detected.items():
-            relevant_clauses = []
-            for c in clauses:
-                c_lower = c.lower()
-                if any(re.search(r'\b' + re.escape(kw), c_lower) for kw in keywords):
-                    relevant_clauses.append(c.strip())
-            
-            aspect_context = ". ".join(relevant_clauses) if relevant_clauses else review_text
-            
-            # Predict sentiment on this aspect snippet if classifier provided
-            if sentiment_classifier and vectorizer and aspect_context.strip():
-                try:
-                    from src.preprocess import clean_text
-                    cleaned_ctx = clean_text(aspect_context)
-                    vec = vectorizer.transform([cleaned_ctx])
-                    pred_sentiment = sentiment_classifier.predict(vec)[0]
-                    # Check if predict_proba is available
-                    if hasattr(sentiment_classifier, "predict_proba"):
-                        probs = sentiment_classifier.predict_proba(vec)[0]
-                        confidence = float(max(probs))
-                    else:
-                        confidence = 0.85
-                except Exception:
-                    pred_sentiment = "Neutral"
-                    confidence = 0.5
-            else:
-                pred_sentiment = "Detected"
-                confidence = 1.0
-                
-            aspect_results[aspect] = {
-                "keywords": keywords,
-                "snippet": aspect_context,
-                "sentiment": pred_sentiment,
-                "confidence": round(confidence, 3)
-            }
-            
-        return aspect_results
+        """Compatibility API, using the same clause extraction as batch analysis."""
+        if sentiment_classifier is None or vectorizer is None:
+            return {name: {'keywords': sorted(info['keywords']), 'snippet': '. '.join(info['clauses']),
+                           'sentiment': 'Detected', 'confidence': None}
+                    for name, info in self.contexts(review_text).items()}
+        from src.preprocess import clean_text
+        def classify(texts):
+            keep_stopwords = hasattr(vectorizer, 'transformer_list')
+            features = vectorizer.transform([clean_text(text, remove_stopwords=not keep_stopwords) for text in texts])
+            probabilities = sentiment_classifier.predict_proba(features)
+            classes = sentiment_classifier.classes_
+            return [{'sentiment': str(classes[row.argmax()]),
+                     'probabilities': {str(label): round(float(p), 4) for label, p in zip(classes, row)}}
+                    for row in probabilities]
+        return self.analyze_many([review_text], classify)[0]
 
 
 class TopicModeler:
@@ -147,6 +164,8 @@ class TopicModeler:
         if not self.is_fitted:
             return None
         dtm = self.count_vectorizer.transform([preprocessed_text])
+        if dtm.nnz == 0:
+            return None
         topic_probs = self.lda_model.transform(dtm)[0]
         dominant_idx = int(topic_probs.argmax())
         return {
@@ -187,6 +206,14 @@ def generate_actionable_recommendations(batch_analytics: dict):
     total_reviews = sum(sentiment_counts.values()) or 1
     
     neg_pct = (sentiment_counts.get("Negative", 0) / total_reviews) * 100
+    uncovered = batch_analytics.get('reviews_without_aspects', 0)
+    if uncovered:
+        recommendations.append({
+            'severity': 'LOW', 'category': 'Aspect Coverage',
+            'finding': f'{uncovered} reviews have no recognized business aspect.',
+            'action': 'Check the selected feedback column and read general or unrecognized reviews. Ask for specific details before assigning an issue to a business area.',
+            'impact': 'Missing aspect matches do not mean there are no business problems.'
+        })
     
     # 1. Overall Health Alert
     if neg_pct > 30:
@@ -194,16 +221,16 @@ def generate_actionable_recommendations(batch_analytics: dict):
             "severity": "CRITICAL",
             "category": "Customer Satisfaction Alert",
             "finding": f"High overall negative sentiment ({neg_pct:.1f}% of total reviews).",
-            "action": "Immediate executive review required. Initiate immediate outreach to dissatisfied customers.",
-            "impact": "Mitigates churn rate and prevents brand equity erosion."
+            "action": "Read the negative reviews and confirm the most frequent issues before choosing a corrective action.",
+            "impact": "May improve customer satisfaction; compare later feedback to assess the effect."
         })
-    elif neg_pct < 15:
+    elif neg_pct < 15 and sentiment_counts.get('Positive', 0) / total_reviews >= .6:
         recommendations.append({
             "severity": "POSITIVE",
-            "category": "High Loyalty Trend",
+            "category": "Positive Feedback Trend",
             "finding": f"Strong positive reception with only {neg_pct:.1f}% negative feedback.",
             "action": "Leverage satisfied customer base for referral incentives, testimonials, and case studies.",
-            "impact": "Accelerates organic customer acquisition."
+            "impact": "May support customer advocacy; positive sentiment alone does not establish loyalty."
         })
 
     # 2. Aspect-Specific Insights
@@ -218,16 +245,16 @@ def generate_actionable_recommendations(batch_analytics: dict):
                 "severity": "HIGH",
                 "category": "Logistics & Fulfillment",
                 "finding": f"{neg_ratio:.1f}% negative sentiment in Delivery & Packaging ({neg_mentions} complaints).",
-                "action": "Review courier SLAs in affected zones. Enhance packaging cushioning to eliminate transit damage.",
-                "impact": "Decreases return costs and transit-related refund requests by up to 25%."
+                "action": "Inspect the negative delivery and packaging reviews to distinguish delays, handling and packaging issues before changing fulfillment practices.",
+                "impact": "May reduce transit-related returns; measure the effect after changes."
             })
         elif aspect == "Product Quality" and neg_ratio >= 25:
             recommendations.append({
                 "severity": "CRITICAL",
                 "category": "Quality Assurance",
-                "finding": f"{neg_ratio:.1f}% negative sentiment in Product Quality ({neg_mentions} reports of defects/durability issues).",
-                "action": "Conduct immediate batch inspection with manufacturing QA. Flag recurring hardware failure modes.",
-                "impact": "Prevents product recalls and improves lifetime value (LTV)."
+                "finding": f"{neg_ratio:.1f}% negative sentiment in Product Quality ({neg_mentions} negative mentions).",
+                "action": "Read the cited product-quality feedback and verify recurring problems with the quality team before prioritizing inspections or fixes.",
+                "impact": "May help identify quality problems earlier; the batch does not establish a defect rate."
             })
         elif aspect == "Customer Support" and neg_ratio >= 20:
             recommendations.append({
@@ -235,7 +262,7 @@ def generate_actionable_recommendations(batch_analytics: dict):
                 "category": "Support Operations",
                 "finding": f"{neg_ratio:.1f}% negative sentiment regarding Customer Service.",
                 "action": "Reduce wait times with smart triage routing and train front-line agents on empathetic de-escalation.",
-                "impact": "Increases first-contact resolution (FCR) rate and CSAT score."
+                "impact": "May improve support satisfaction; measure outcomes after any process changes."
             })
         elif aspect == "Pricing & Value" and neg_ratio >= 25:
             recommendations.append({
@@ -243,24 +270,31 @@ def generate_actionable_recommendations(batch_analytics: dict):
                 "category": "Pricing & Packaging",
                 "finding": f"{neg_ratio:.1f}% of price-conscious reviews perceive poor value for money.",
                 "action": "Introduce entry-tier bundles, seasonal discounts, or clearly articulate premium feature ROI in marketing.",
-                "impact": "Improves conversion rate for price-sensitive buyers."
+                "impact": "May improve perceived value; validate pricing changes separately."
             })
         elif aspect == "Usability & UI" and neg_ratio >= 25:
             recommendations.append({
                 "severity": "MEDIUM",
                 "category": "Software & UX",
-                "finding": f"{neg_ratio:.1f}% of UX feedback reported pairing glitches, bugs, or confusing navigation.",
-                "action": "Prioritize onboarding walkthrough in companion app and release bug fix for Bluetooth sync latency.",
-                "impact": "Improves day-1 retention and app store star ratings."
+                "finding": f"{neg_ratio:.1f}% negative sentiment in Usability & UI ({neg_mentions} negative mentions).",
+                "action": "Inspect the cited software and usability reviews. Reproduce recurring problems and prioritize the most frequent verified issue.",
+                "impact": "May improve usability; confirm the effect with subsequent feedback."
             })
 
     if not recommendations:
         recommendations.append({
             "severity": "LOW",
             "category": "Steady State Operations",
-            "finding": "Sentiment is well-balanced across all monitored operational aspects.",
+            "finding": "No monitored aspect crossed the configured negative-sentiment alert thresholds.",
             "action": "Continue baseline monitoring and maintain standard operating quality procedures.",
-            "impact": "Sustains ongoing customer satisfaction."
+            "impact": "A larger representative sample may reveal issues this batch does not capture."
         })
         
+    if total_reviews < 20:
+        recommendations.insert(0, {
+            'severity': 'LOW', 'category': 'Small Sample',
+            'finding': f'This batch contains only {total_reviews} analyzed reviews.',
+            'action': 'Use these results to inspect individual feedback. Collect more representative reviews before drawing broad business conclusions.',
+            'impact': 'Small samples can give unstable percentages and should not establish business-wide trends.'
+        })
     return recommendations

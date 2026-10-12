@@ -1,0 +1,4 @@
+# Optional, for opening the academic walkthrough as a Jupyter notebook.
+-r requirements-lock.txt
+ipython>=8.0
+jupyterlab>=4.0

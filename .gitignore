@@ -1,0 +1,5 @@
+.venv*/
+__pycache__/
+*.pyc
+server.*.log
+data/raw/uci_sentiment.zip

@@ -1,0 +1,53 @@
+{
+  "samples": 594,
+  "accuracy": 0.5202020202020202,
+  "macro_f1": 0.5902921387586286,
+  "classification_report": {
+    "Negative": {
+      "precision": 0.6023166023166023,
+      "recall": 0.5252525252525253,
+      "f1-score": 0.5611510791366906,
+      "support": 297.0
+    },
+    "Neutral": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 0.0
+    },
+    "Positive": {
+      "precision": 0.7766497461928934,
+      "recall": 0.5151515151515151,
+      "f1-score": 0.6194331983805668,
+      "support": 297.0
+    },
+    "accuracy": 0.5202020202020202,
+    "macro avg": {
+      "precision": 0.4596554495031652,
+      "recall": 0.34680134680134683,
+      "f1-score": 0.39352809250575244,
+      "support": 594.0
+    },
+    "weighted avg": {
+      "precision": 0.6894831742547478,
+      "recall": 0.5202020202020202,
+      "f1-score": 0.5902921387586286,
+      "support": 594.0
+    }
+  },
+  "by_source": {
+    "imdb_labelled": {
+      "samples": 199,
+      "accuracy": 0.49748743718592964
+    },
+    "amazon_cells_labelled": {
+      "samples": 196,
+      "accuracy": 0.5969387755102041
+    },
+    "yelp_labelled": {
+      "samples": 199,
+      "accuracy": 0.46733668341708545
+    }
+  },
+  "note": "Fixed UCI holdout, positive/negative labels only; not used for model selection."
+}

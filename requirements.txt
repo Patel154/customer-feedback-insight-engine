@@ -14,3 +14,4 @@ wordcloud>=1.9.3
 
 # Web Application
 Flask>=3.0.0
+openpyxl>=3.1.5

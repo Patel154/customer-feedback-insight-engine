@@ -1,400 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Feedback Sentiment & Insight Platform | ML SEM-5</title>
-    <!-- Google Fonts: Inter & Outfit -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>InsightPulse · Customer feedback intelligence</title>
+  <link rel="icon" href="/static/img/pulse.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/dashboard.js" defer></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="brand-icon"><i class="fa-solid fa-brain-circuit"></i></div>
-                <div class="brand-text">
-                    <h2>InsightPulse</h2>
-                    <span>Automated Sentiment & ABSA</span>
-                </div>
-            </div>
-
-            <nav class="nav-menu">
-                <a href="#single" class="nav-item active" data-tab="single-tab">
-                    <i class="fa-solid fa-message"></i>
-                    <span>Live Analyzer</span>
-                </a>
-                <a href="#batch" class="nav-item" data-tab="batch-tab">
-                    <i class="fa-solid fa-file-csv"></i>
-                    <span>Batch Analytics</span>
-                </a>
-                <a href="#models" class="nav-item" data-tab="models-tab">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>Model Benchmark</span>
-                </a>
-                <a href="#architecture" class="nav-item" data-tab="architecture-tab">
-                    <i class="fa-solid fa-diagram-project"></i>
-                    <span>System Architecture</span>
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="badge-project">
-                    <span class="dot"></span> 5th Sem ML Project
-                </div>
-                <p class="model-status" id="sidebarModelStatus">
-                    <i class="fa-solid fa-circle-check"></i> Linear SVM Active
-                </p>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="top-bar">
-                <div class="header-titles">
-                    <h1>Automated Sentiment Analysis & Insight Extraction</h1>
-                    <p>End-to-End NLP & Machine Learning Engine for Customer Feedback Intelligence</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" id="btnDownloadSample">
-                        <i class="fa-solid fa-download"></i> Sample Dataset
-                    </button>
-                    <a href="/api/metrics" target="_blank" class="btn btn-outline">
-                        <i class="fa-solid fa-code"></i> API Metrics
-                    </a>
-                </div>
-            </header>
-
-            <!-- TAB 1: Live Single Review Analyzer -->
-            <section id="single-tab" class="tab-pane active">
-                <div class="grid-2-col">
-                    <!-- Input Section -->
-                    <div class="card glass-card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fa-solid fa-pen-to-square"></i> Test Feedback In Real-Time
-                            </div>
-                            <span class="subtext">Type or select a sample review</span>
-                        </div>
-
-                        <div class="sample-pills">
-                            <span class="pill-label">Presets:</span>
-                            <button class="preset-pill" data-preset="delivery">Delayed Shipping</button>
-                            <button class="preset-pill" data-preset="quality">Superb Hardware</button>
-                            <button class="preset-pill" data-preset="mixed">Mixed Feedback</button>
-                            <button class="preset-pill" data-preset="support">Rude Support</button>
-                        </div>
-
-                        <div class="input-group">
-                            <textarea id="singleReviewInput" rows="5" placeholder="Enter customer review (e.g. 'The product quality was extraordinary and arrived quickly, but the companion mobile app crashed repeatedly on bluetooth pairing...')" maxlength="1500"></textarea>
-                            <div class="char-counter"><span id="charCount">0</span> / 1500</div>
-                        </div>
-
-                        <button class="btn btn-primary btn-block" id="btnAnalyzeSingle">
-                            <i class="fa-solid fa-bolt"></i> Run Sentiment & Insight Analysis
-                        </button>
-                    </div>
-
-                    <!-- Output Summary Section -->
-                    <div class="card glass-card result-container" id="singleResultContainer">
-                        <div class="empty-state" id="singleEmptyState">
-                            <i class="fa-solid fa-wand-magic-sparkles fa-3x"></i>
-                            <h3>Awaiting Customer Feedback</h3>
-                            <p>Enter a review on the left or select a sample preset to extract polarity, aspect sentiments, and topic clusters.</p>
-                        </div>
-
-                        <div class="result-content hidden" id="singleResultContent">
-                            <div class="result-header">
-                                <div>
-                                    <span class="badge-label">Predicted Sentiment</span>
-                                    <div class="sentiment-badge" id="sentimentBadge">Positive</div>
-                                </div>
-                                <div class="confidence-box">
-                                    <span class="badge-label">Model Confidence</span>
-                                    <h2 id="confidenceValue">96.4%</h2>
-                                </div>
-                            </div>
-
-                            <!-- Confidence Meter -->
-                            <div class="confidence-bar-wrapper">
-                                <div class="confidence-bar-fill" id="confidenceBar"></div>
-                            </div>
-
-                            <!-- Probability Breakdown -->
-                            <div class="probs-grid">
-                                <div class="prob-chip chip-pos">
-                                    <span>Positive</span>
-                                    <strong id="probPos">0%</strong>
-                                </div>
-                                <div class="prob-chip chip-neu">
-                                    <span>Neutral</span>
-                                    <strong id="probNeu">0%</strong>
-                                </div>
-                                <div class="prob-chip chip-neg">
-                                    <span>Negative</span>
-                                    <strong id="probNeg">0%</strong>
-                                </div>
-                            </div>
-
-                            <!-- Extracted Aspects -->
-                            <div class="section-divider">
-                                <h4><i class="fa-solid fa-tags"></i> Aspect-Based Breakdown (ABSA)</h4>
-                            </div>
-                            <div class="aspects-list" id="aspectsList">
-                                <!-- Populated dynamically -->
-                            </div>
-
-                            <!-- Dominant Topic -->
-                            <div class="topic-box" id="topicBox">
-                                <i class="fa-solid fa-compass"></i>
-                                <div>
-                                    <small>Dominant LDA Topic Cluster</small>
-                                    <strong id="topicLabel">Topic: Hardware / Screen / Quality</strong>
-                                </div>
-                            </div>
-
-                            <!-- Preprocessed Text Details -->
-                            <details class="cleaned-details">
-                                <summary><i class="fa-solid fa-terminal"></i> View NLP Preprocessed Tokens</summary>
-                                <p id="cleanedTokensDisplay"></p>
-                            </details>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 2: Batch CSV Analytics -->
-            <section id="batch-tab" class="tab-pane">
-                <!-- Upload Dropzone -->
-                <div class="card glass-card upload-card">
-                    <div class="dropzone" id="csvDropzone">
-                        <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
-                        <h3>Drag & Drop Customer Feedback CSV</h3>
-                        <p>File should contain a column named <code>review_text</code> or <code>feedback</code>.</p>
-                        <input type="file" id="csvFileInput" accept=".csv" class="file-input-hidden">
-                        <button class="btn btn-secondary" onclick="document.getElementById('csvFileInput').click()">
-                            Browse Computer
-                        </button>
-                    </div>
-                    <div class="upload-status hidden" id="uploadStatus">
-                        <div class="spinner"></div>
-                        <span id="uploadStatusText">Analyzing batch feedbacks with multi-model NLP pipeline...</span>
-                    </div>
-                </div>
-
-                <!-- Batch Results Dashboard -->
-                <div class="batch-results hidden" id="batchResultsSection">
-                    <!-- KPI Cards Row -->
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
-                            <div class="kpi-icon icon-blue"><i class="fa-solid fa-comments"></i></div>
-                            <div class="kpi-info">
-                                <span class="kpi-label">Total Feedbacks</span>
-                                <h3 id="kpiTotal">0</h3>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon icon-green"><i class="fa-solid fa-face-smile"></i></div>
-                            <div class="kpi-info">
-                                <span class="kpi-label">Positive Feedback</span>
-                                <h3 id="kpiPos">0%</h3>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon icon-red"><i class="fa-solid fa-face-frown"></i></div>
-                            <div class="kpi-info">
-                                <span class="kpi-label">Negative Feedback</span>
-                                <h3 id="kpiNeg">0%</h3>
-                            </div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-icon icon-purple"><i class="fa-solid fa-shield-halved"></i></div>
-                            <div class="kpi-info">
-                                <span class="kpi-label">Avg Confidence</span>
-                                <h3 id="kpiConf">0%</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Charts Row -->
-                    <div class="charts-grid">
-                        <div class="card glass-card chart-card">
-                            <div class="card-header">
-                                <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Sentiment Distribution</div>
-                            </div>
-                            <div class="chart-wrapper">
-                                <canvas id="sentimentChart"></canvas>
-                            </div>
-                        </div>
-
-                        <div class="card glass-card chart-card">
-                            <div class="card-header">
-                                <div class="card-title"><i class="fa-solid fa-chart-column"></i> Aspect Sentiment Polarity</div>
-                            </div>
-                            <div class="chart-wrapper">
-                                <canvas id="aspectChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Actionable Business Recommendations -->
-                    <div class="card glass-card recommendations-card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i class="fa-solid fa-lightbulb"></i> Automated Actionable Business Recommendations
-                            </div>
-                            <span class="subtext">Synthesized from customer pain points and topic clusters</span>
-                        </div>
-                        <div class="recommendations-list" id="recommendationsList">
-                            <!-- Populated dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Data Table -->
-                    <div class="card glass-card table-card">
-                        <div class="card-header flex-between">
-                            <div class="card-title"><i class="fa-solid fa-table-list"></i> Feedback Inspection Table</div>
-                            <button class="btn btn-outline btn-sm" id="btnExportCSV">
-                                <i class="fa-solid fa-file-export"></i> Export Enriched CSV
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table" id="feedbackTable">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Feedback Text</th>
-                                        <th>Predicted Sentiment</th>
-                                        <th>Confidence</th>
-                                        <th>Detected Aspects</th>
-                                        <th>Dominant Topic</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 3: Model Benchmark & Evaluation -->
-            <section id="models-tab" class="tab-pane">
-                <div class="card glass-card">
-                    <div class="card-header">
-                        <div class="card-title"><i class="fa-solid fa-award"></i> Multi-Algorithm Performance Benchmarking</div>
-                        <span class="subtext">Evaluated on 5-Fold Cross-Validation & Stratified 20% Unseen Test Set</span>
-                    </div>
-
-                    <div class="benchmark-table-wrapper">
-                        <table class="benchmark-table" id="benchmarkTable">
-                            <thead>
-                                <tr>
-                                    <th>Algorithm</th>
-                                    <th>5-Fold CV F1-Score</th>
-                                    <th>Test Accuracy</th>
-                                    <th>Test F1 (Macro)</th>
-                                    <th>Precision (Macro)</th>
-                                    <th>Recall (Macro)</th>
-                                    <th>Inference Latency</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Populated from /api/metrics -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="grid-2-col" style="margin-top: 1.5rem;">
-                    <div class="card glass-card">
-                        <div class="card-header">
-                            <div class="card-title"><i class="fa-solid fa-square-poll-vertical"></i> Algorithm Comparison Chart</div>
-                        </div>
-                        <div class="image-container">
-                            <img src="/static/img/model_comparison.png" alt="Model Comparison" onerror="this.src='https://placehold.co/600x400?text=Run+src/train.py+to+generate+charts'">
-                        </div>
-                    </div>
-
-                    <div class="card glass-card">
-                        <div class="card-header">
-                            <div class="card-title"><i class="fa-solid fa-table-cells-large"></i> Confusion Matrix (Best Model)</div>
-                        </div>
-                        <div class="image-container">
-                            <img src="/static/img/confusion_matrix.png" alt="Confusion Matrix" onerror="this.src='https://placehold.co/600x400?text=Run+src/train.py+to+generate+charts'">
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 4: System Architecture & Math -->
-            <section id="architecture-tab" class="tab-pane">
-                <div class="card glass-card">
-                    <div class="card-header">
-                        <div class="card-title"><i class="fa-solid fa-network-wired"></i> End-to-End System Pipeline</div>
-                    </div>
-                    <div class="architecture-flow">
-                        <div class="arch-step">
-                            <div class="arch-icon"><i class="fa-solid fa-file-lines"></i></div>
-                            <h4>1. Ingestion & Preprocessing</h4>
-                            <p>Contraction expansion, URL/Punctuation stripping, negation-aware stopword filtering, and WordNet lemmatization.</p>
-                        </div>
-                        <div class="arch-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                        <div class="arch-step">
-                            <div class="arch-icon"><i class="fa-solid fa-calculator"></i></div>
-                            <h4>2. TF-IDF Featurization</h4>
-                            <p>Strict split-before-vectorization. Unigram + Bigram sublinear TF-IDF representation (5,000 max features).</p>
-                        </div>
-                        <div class="arch-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                        <div class="arch-step">
-                            <div class="arch-icon"><i class="fa-solid fa-brain"></i></div>
-                            <h4>3. Classification Engine</h4>
-                            <p>Benchmarked across Naive Bayes, Logistic Regression, Linear SVM, and Random Forest with probability calibration.</p>
-                        </div>
-                        <div class="arch-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                        <div class="arch-step">
-                            <div class="arch-icon"><i class="fa-solid fa-lightbulb"></i></div>
-                            <h4>4. Insight Extraction</h4>
-                            <p>Clause-level Aspect-Based Sentiment Analysis (ABSA), Latent Dirichlet Allocation (LDA) Topic Modeling, and Recommendations.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid-2-col" style="margin-top: 1.5rem;">
-                    <div class="card glass-card">
-                        <h3>Mathematical Formulations</h3>
-                        <div class="math-block">
-                            <strong>TF-IDF Weighting:</strong>
-                            <p>$$\text{TF-IDF}(t, d, D) = \text{TF}(t, d) \times \ln\left(\frac{1 + |D|}{1 + \text{DF}(t, D)}\right) + 1$$</p>
-                        </div>
-                        <div class="math-block">
-                            <strong>Multinomial Naive Bayes:</strong>
-                            <p>$$P(c|d) \propto P(c) \prod_{i=1}^{n} P(w_i|c)^{f_i}, \quad P(w_i|c) = \frac{N_{ci} + \alpha}{N_c + \alpha |V|}$$</p>
-                        </div>
-                        <div class="math-block">
-                            <strong>Support Vector Machine (Linear Margin):</strong>
-                            <p>$$\min_{\mathbf{w}, b, \boldsymbol{\xi}} \frac{1}{2} \|\mathbf{w}\|^2 + C \sum_{i=1}^n \xi_i \quad \text{s.t.} \quad y_i(\mathbf{w}^T \mathbf{x}_i + b) \ge 1 - \xi_i$$</p>
-                        </div>
-                    </div>
-
-                    <div class="card glass-card">
-                        <h3>Discovered LDA Topics (Unsupervised)</h3>
-                        <div id="ldaTopicsDisplay" class="lda-topics-list">
-                            <p class="text-muted">Loading discovered topic clusters...</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <script src="/static/js/dashboard.js"></script>
+  <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 1-8 8H4l1.5-4A8 8 0 1 1 20 11Z"/><path d="M8 9h8M8 13h5"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8M8 16h8"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v17h17M8 15v-4M13 15V7M18 15v-9"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#single"><span class="brand-mark"><svg class="icon"><use href="#i-pulse"/></svg></span><span>InsightPulse<small>FEEDBACK INTELLIGENCE</small></span></a>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Main navigation">
+        <a href="#single" class="nav-item active" data-tab="single"><svg class="icon"><use href="#i-chat"/></svg>Review analyzer<span>01</span></a>
+        <a href="#batch" class="nav-item" data-tab="batch"><svg class="icon"><use href="#i-file"/></svg>Batch insights<span>02</span></a>
+        <a href="#models" class="nav-item" data-tab="models"><svg class="icon"><use href="#i-chart"/></svg>Model evaluation<span>03</span></a>
+        <a href="#architecture" class="nav-item" data-tab="architecture"><svg class="icon"><use href="#i-grid"/></svg>How it works<span>04</span></a>
+      </nav>
+      <div class="sidebar-note"><svg class="icon"><use href="#i-pulse"/></svg><h3>Every review tells a story.</h3><p>Find the sentiment. Understand the reason. Decide what comes next.</p><div class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="sidebar-footer"><span class="status-dot"></span>5th semester · AI project<small id="sidebarModelStatus">Loading model…</small></div>
+    </aside>
+    <main>
+      <header class="top-bar"><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumbTitle">Review analyzer</strong></div><div class="top-actions"><span class="online"><i class="status-dot"></i> Local workspace</span><button id="themeToggle" class="icon-button" aria-label="Switch to dark theme" title="Switch theme"><svg class="icon"><use href="#i-sun"/></svg></button></div></header>
+      <div class="page-content">
+        <section class="page-heading"><div><div class="eyebrow"><span></span> CUSTOMER FEEDBACK INTELLIGENCE</div><h1 id="pageTitle">Listen beyond the words.</h1><p id="pageDescription">Understand how customers feel — and what needs your attention.</p></div><button class="btn btn-secondary" id="btnDownloadSample"><svg class="icon"><use href="#i-download"/></svg>Sample dataset</button></section>
+        <div id="globalError" class="notice error hidden" role="alert"></div>
+        <section id="single-tab" class="tab-pane active" aria-label="Review analyzer">
+          <div class="overview-strip"><div><span class="overview-icon"><svg class="icon"><use href="#i-chart"/></svg></span><span><strong id="overviewAccuracy">—</strong><small>Real-review test accuracy</small></span></div><div><span class="overview-icon teal"><svg class="icon"><use href="#i-file"/></svg></span><span><strong id="overviewSamples">—</strong><small>Held-out real reviews</small></span></div><div><span class="overview-icon violet"><svg class="icon"><use href="#i-grid"/></svg></span><span><strong>5 business aspects</strong><small>From product quality to support</small></span></div><a href="#models" class="text-link">Explore evaluation <svg class="icon"><use href="#i-arrow"/></svg></a></div>
+          <div class="analysis-grid">
+            <article class="card input-card"><div class="card-header"><div><span class="step-label">01 / INPUT</span><h2>What are customers saying?</h2></div><span class="small-tag">ENGLISH</span></div><label for="singleReviewInput" class="field-label">Customer review</label><textarea id="singleReviewInput" rows="7" maxlength="10000" placeholder="The delivery was quick and the packaging was secure, but the app keeps crashing…"></textarea><div class="input-meta"><span>One review, multiple perspectives.</span><span><span id="charCount">0</span> / 10,000</span></div><p class="field-label examples-label">Or explore an example</p><div class="sample-pills"><button class="preset-pill" data-preset="positive"><span class="tiny-dot positive"></span>Positive</button><button class="preset-pill" data-preset="negative"><span class="tiny-dot negative"></span>Negative</button><button class="preset-pill" data-preset="neutral"><span class="tiny-dot neutral"></span>Neutral</button><button class="preset-pill" data-preset="mixed"><span class="tiny-dot mixed"></span>Mixed aspects</button><button class="preset-pill" data-preset="negation">Not good</button></div><button class="btn btn-primary btn-block" id="btnAnalyzeSingle">Analyze review <svg class="icon"><use href="#i-arrow"/></svg></button><p class="privacy-note">Processed locally. Your feedback stays in this workspace.</p></article>
+            <article class="card result-card"><div class="card-header"><div><span class="step-label">02 / INSIGHT</span><h2>The story behind the review</h2></div><span class="small-tag accent">LIVE ANALYSIS</span></div><div id="singleEmptyState" class="empty-state"><div class="empty-illustration" aria-hidden="true"><span class="mini-message"><i></i><i></i><i></i></span><span class="floating-pulse"><svg class="icon"><use href="#i-pulse"/></svg></span><span class="floating-check"><svg class="icon"><use href="#i-check"/></svg></span></div><h3>Your next insight starts here.</h3><p>Add a review to see its sentiment, confidence and the aspects that matter.</p><div class="empty-legend"><span class="tiny-dot positive"></span>Positive<span class="tiny-dot neutral"></span>Neutral<span class="tiny-dot negative"></span>Negative</div></div>
+              <div id="singleResultContent" class="hidden" aria-live="polite"><div class="result-header"><div><span class="field-label">Overall sentiment</span><span id="sentimentBadge" class="sentiment-badge"></span></div><div class="confidence-box"><span class="field-label">Model confidence</span><strong id="confidenceValue"></strong></div></div><div class="confidence-track"><div id="confidenceBar"></div></div><p class="confidence-note">Confidence is an estimate for this prediction, not a measure of accuracy.</p><div id="reviewWarning" class="notice warning hidden"></div><div id="mixedNotice" class="notice info hidden">Mixed feedback: positive and negative opinions appear in different aspects. See the evidence below.</div><div id="probabilityBars" class="probability-bars"></div><div class="section-divider"><h3>Aspect-level evidence</h3><span>What drove the sentiment</span></div><div id="aspectsList" class="aspects-list"></div><div class="topic-box"><svg class="icon"><use href="#i-grid"/></svg><div><small>Discovered topic · LDA</small><strong id="topicLabel"></strong></div></div><details class="cleaned-details"><summary>Inspect preprocessed text</summary><p id="cleanedTokensDisplay"></p></details></div>
+            </article>
+          </div>
+          <div class="bottom-note"><svg class="icon"><use href="#i-pulse"/></svg><span><strong>Sentiment is only the beginning.</strong> Analyze a feedback file to uncover recurring issues and business recommendations.</span><a href="#batch" class="text-link">Go to batch insights <svg class="icon"><use href="#i-arrow"/></svg></a></div>
+        </section>
+        <section id="batch-tab" class="tab-pane" aria-label="Batch insights">
+          <article class="card upload-card"><div id="csvDropzone" class="dropzone"><span class="upload-icon"><svg class="icon"><use href="#i-upload"/></svg></span><div><h2>A whole file. A clearer picture.</h2><p>Drop your customer feedback here, or choose a file to get started.</p><span class="upload-formats">CSV · TSV · XLSX <span>Up to 16 MB / 10,000 rows</span></span></div><input type="file" id="csvFileInput" accept=".csv,.tsv,.xlsx" class="hidden"><button class="btn btn-primary" id="browseFile">Choose file <svg class="icon"><use href="#i-arrow"/></svg></button></div><div id="uploadStatus" class="loading-state hidden" role="status"><span class="spinner"></span><span id="uploadStatusText">Reading your file…</span></div>
+            <div id="uploadPreview" class="hidden"><div class="preview-heading"><div><span class="step-label">CHECK YOUR INPUT</span><h2 id="selectedFileName"></h2><p id="selectedFileMeta"></p></div><button class="btn btn-quiet" id="clearFile">Choose another file</button></div><div class="mapping-controls"><div id="sheetControl"><label for="sheetSelect">Worksheet</label><select id="sheetSelect"></select></div><div><label for="textColumnSelect">Column containing customer feedback</label><select id="textColumnSelect"></select></div><button class="btn btn-primary" id="btnAnalyzeBatch">Analyze feedback <svg class="icon"><use href="#i-arrow"/></svg></button></div><p class="muted small">Preview of the first five rows. Select the review text column, rather than a name, rating or ID.</p><div class="table-responsive preview-table"><table id="previewTable"><thead></thead><tbody></tbody></table></div></div>
+          </article>
+          <div id="batchResultsSection" class="hidden"><div class="results-title"><div><span class="step-label">YOUR FEEDBACK, AT A GLANCE</span><h2>From individual voices to shared patterns.</h2></div><span id="batchSource" class="small-tag"></span></div><div class="kpi-grid"><article class="kpi-card"><span>Reviews analyzed</span><strong id="kpiTotal">0</strong><small id="kpiRows"></small></article><article class="kpi-card"><span><i class="tiny-dot positive"></i>Positive sentiment</span><strong id="kpiPos">0%</strong><small id="kpiPosCount"></small></article><article class="kpi-card"><span><i class="tiny-dot negative"></i>Negative sentiment</span><strong id="kpiNeg">0%</strong><small id="kpiNegCount"></small></article><article class="kpi-card"><span>Needs a human look</span><strong id="kpiReview">0</strong><small>Uncertain predictions flagged</small></article></div><div id="batchQuality" class="notice info"></div><div class="charts-grid"><article class="card chart-card"><div class="card-header"><h2>How customers feel</h2><span class="small-tag">SENTIMENT</span></div><div id="sentimentChart" class="sentiment-chart"></div></article><article class="card chart-card"><div class="card-header"><h2>Where to focus</h2><span class="small-tag">BUSINESS ASPECTS</span></div><div id="aspectChart" class="aspect-chart"></div><p class="chart-footnote">Sorted by negative mentions. One review can mention multiple aspects; counts are mentions, not percentages.</p></article></div><article class="card"><div class="card-header"><div><span class="step-label">TURN INSIGHT INTO ACTION</span><h2>Suggested next steps</h2></div><span class="muted small">Based on this batch</span></div><div id="recommendationsList" class="recommendations-list"></div></article><article class="card table-card"><div class="card-header"><div><h2>Every review, accounted for.</h2><p class="muted small">Explore the evidence, including skipped and uncertain rows.</p></div><button id="btnExportCSV" class="btn btn-secondary"><svg class="icon"><use href="#i-download"/></svg>Export all rows</button></div><div class="table-tools"><input id="reviewSearch" type="search" placeholder="Search feedback…" aria-label="Search feedback"><select id="sentimentFilter" aria-label="Filter by sentiment"><option value="">All sentiments</option><option>Positive</option><option>Neutral</option><option>Negative</option></select><select id="statusFilter" aria-label="Filter by status"><option value="">All rows</option><option>Analyzed</option><option>Needs review</option><option>Skipped</option></select></div><div class="table-responsive"><table id="feedbackTable"><thead><tr><th>Row</th><th>Customer feedback</th><th>Sentiment</th><th>Confidence</th><th>Aspects</th><th>Status</th></tr></thead><tbody></tbody></table></div><div class="table-pagination"><span id="tableCount"></span><div><button id="previousPage" class="btn btn-quiet">Previous</button><span id="pageCount"></span><button id="nextPage" class="btn btn-quiet">Next</button></div></div></article></div>
+        </section>
+        <section id="models-tab" class="tab-pane" aria-label="Model evaluation"><div class="evaluation-grid"><article class="card evaluation-highlight"><span class="step-label">REAL REVIEWS / EXTERNAL HOLDOUT</span><h2>A measurable improvement.</h2><p>Both versions tested on the same real English reviews excluded from the revised training corpus.</p><div class="comparison-scores"><div><small>Previous model</small><strong id="baselineAccuracy">—</strong></div><svg class="icon"><use href="#i-arrow"/></svg><div><small>Revised model</small><strong id="realAccuracy">—</strong></div></div><div class="evaluation-footer" id="externalDetails"></div></article><article class="card"><span class="step-label">READ THE SCORES CORRECTLY</span><h2>Evidence, with context.</h2><p class="evaluation-copy">The external test contains positive and negative Amazon, Yelp and IMDb reviews. It does not measure performance on real neutral reviews.</p><p class="evaluation-copy">The internal test includes generated and curated teaching examples. A high internal score does not guarantee the same accuracy on your uploaded data.</p><p class="evaluation-copy">Low-confidence predictions are flagged for review. Sarcasm, unfamiliar language and new product domains can still cause mistakes.</p><a class="text-link" href="https://archive.ics.uci.edu/dataset/331/sentiment+labelled+sentences" target="_blank" rel="noopener">UCI dataset & attribution <svg class="icon"><use href="#i-arrow"/></svg></a></article></div><article class="card"><div class="card-header"><div><span class="step-label">TRAINING & MODEL SELECTION</span><h2>Four algorithms. One consistent comparison.</h2></div><span class="small-tag">5-FOLD CROSS-VALIDATION</span></div><p id="trainingDetails" class="muted small"></p><div class="table-responsive"><table id="benchmarkTable"><thead><tr><th>Algorithm</th><th>Training CV macro F1</th><th>Internal accuracy</th><th>Internal macro F1</th><th>Precision</th><th>Recall</th></tr></thead><tbody></tbody></table></div><p class="chart-footnote">Model selection uses training CV macro F1. Features are fitted inside each fold; internal and external test scores are not used to select the winner.</p></article><div class="charts-grid"><article class="card"><div class="card-header"><h2>Algorithm comparison</h2></div><img src="/static/img/model_comparison.png" alt="Comparison of model internal accuracy and training cross-validation macro F1" class="evaluation-image"></article><article class="card"><div class="card-header"><h2>Confusion matrix</h2></div><img src="/static/img/confusion_matrix.png" alt="Internal holdout confusion matrix of the selected classifier" class="evaluation-image"></article></div></section>
+        <section id="architecture-tab" class="tab-pane" aria-label="How it works"><article class="card"><div class="card-header"><div><span class="step-label">THE AI PIPELINE</span><h2>From raw feedback to useful evidence.</h2></div><span class="small-tag">OFFLINE INFERENCE</span></div><div class="architecture-flow"><div><span class="arch-number">01</span><h3>Read & validate</h3><p>Preview CSV or Excel, select the review column, and separate missing or invalid input from real feedback.</p></div><div><span class="arch-number">02</span><h3>Preserve meaning</h3><p>Expand contractions, retain negations and context words, and apply a consistent offline Snowball stemmer.</p></div><div><span class="arch-number">03</span><h3>Learn & classify</h3><p>Word and character TF-IDF capture phrases and spelling patterns. Compare four classifiers using training-only cross-validation.</p></div><div><span class="arch-number">04</span><h3>Explain & prioritize</h3><p>Analyze aspect-specific clauses, discover LDA topics, and summarize patterns into suggested business actions.</p></div></div></article><div class="charts-grid"><article class="card"><span class="step-label">WHY THESE FEATURES?</span><h2>Words carry context.</h2><div class="concept-example"><span>“The product is <strong>not good</strong>.”</span><svg class="icon"><use href="#i-arrow"/></svg><span class="sentiment-badge Negative">Negative</span></div><p class="evaluation-copy">Word unigrams, bigrams and trigrams preserve short phrases such as “not good”. Character 3–5 grams add evidence when spelling varies. The vocabulary is learned only from each training fold.</p><div class="formula"><strong>TF-IDF</strong><code>tf(t, d) × [log((1 + N) / (1 + df(t))) + 1]</code><small>Common terms receive less weight; informative terms receive more.</small></div><div class="formula"><strong>Macro F1</strong><code>mean(F1_negative, F1_neutral, F1_positive)</code><small>Each class contributes equally to the model selection score.</small></div></article><article class="card"><span class="step-label">UNSUPERVISED DISCOVERY</span><h2>Topics learned from the corpus.</h2><p class="muted small">LDA clusters frequently co-occurring terms. These are learned topic hints, rather than predefined business labels.</p><div id="ldaTopicsDisplay" class="lda-topics-list"></div></article></div></section>
+        <footer class="page-footer"><span><strong>InsightPulse</strong> · Automated sentiment analysis & insight extraction</span><span>5th semester artificial intelligence project</span></footer>
+      </div>
+    </main>
+  </div>
 </body>
 </html>

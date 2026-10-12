@@ -81,7 +81,6 @@ IRREGULAR_LEMMAS = {
     "lost": "lose",
     "worse": "bad",
     "worst": "bad",
-    "better": "good",
     "best": "good",
     "damaged": "damag",
     "delayed": "delay",
@@ -96,28 +95,18 @@ def setup_nltk_resources():
 
 def get_normalizer():
     """
-    Returns WordNetLemmatizer if available, else SnowballStemmer.
-    Guaranteed to run 100% offline without network calls.
+    Uses the same offline stemmer in training and inference on every machine.
     """
     global _NORMALIZER
     if _NORMALIZER is None:
-        try:
-            from nltk.stem import WordNetLemmatizer
-            from nltk.corpus import wordnet
-            # Quick test to see if wordnet corpus is present
-            wordnet.synsets('test')
-            lemmatizer = WordNetLemmatizer()
-            _NORMALIZER = lambda w: lemmatizer.lemmatize(lemmatizer.lemmatize(w, pos='v'), pos='n')
-        except Exception:
-            # High-performance offline fallback
-            from nltk.stem import SnowballStemmer
-            stemmer = SnowballStemmer('english')
-            _NORMALIZER = lambda w: stemmer.stem(w)
+        from nltk.stem import SnowballStemmer
+        stemmer = SnowballStemmer('english')
+        _NORMALIZER = stemmer.stem
     return _NORMALIZER
 
 def expand_contractions(text: str) -> str:
     """Expands colloquial contractions (e.g. didn't -> did not)."""
-    text = text.lower()
+    text = text.lower().replace("’", "'")
     for contraction, expansion in CONTRACTIONS.items():
         text = re.sub(r'\b' + contraction + r'\b', expansion, text)
         text = text.replace(contraction, expansion)
@@ -155,7 +144,7 @@ def clean_text(text: str, remove_stopwords: bool = True, normalize: bool = True)
             continue
         if remove_stopwords and token in FILTERED_STOPWORDS:
             continue
-        if token in IRREGULAR_LEMMAS:
+        if normalize and token in IRREGULAR_LEMMAS:
             token = IRREGULAR_LEMMAS[token]
         elif normalize and normalizer:
             token = normalizer(token)

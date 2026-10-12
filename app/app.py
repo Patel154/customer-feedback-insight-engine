@@ -16,6 +16,7 @@ if BASE_DIR not in sys.path:
 
 from src.predictor import SentimentInsightPipeline
 from src.generate_dataset import create_feedback_dataset
+from src.feedback_files import read_feedback_file
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
@@ -35,16 +36,30 @@ def index():
 @app.route("/api/predict", methods=["POST"])
 def api_predict():
     data = request.get_json(silent=True) or {}
-    text = data.get("text", "").strip()
-    if not text:
-        return jsonify({"error": "Empty text supplied."}), 400
-
-    pipe = get_pipeline()
+    if not isinstance(data, dict) or not isinstance(data.get('text'), str):
+        return jsonify({'error': 'Please enter a review as text.'}), 400
+    text = data['text'].strip()
     try:
-        result = pipe.predict_single(text)
+        result = get_pipeline().predict_single(text)
         return jsonify(result)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.errorhandler(413)
+def upload_too_large(error):
+    return jsonify({'error': 'File is too large. The upload limit is 16 MB.'}), 413
+
+@app.route('/api/preview_upload', methods=['POST'])
+def api_preview_upload():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Choose a feedback file first.'}), 400
+    try:
+        _, metadata = read_feedback_file(request.files['file'], request.form.get('sheet') or None)
+        return jsonify(metadata)
+    except Exception as e:
+        return jsonify({'error': f'Could not read the file: {e}'}), 400
 
 @app.route("/api/batch_upload", methods=["POST"])
 def api_batch_upload():
@@ -52,37 +67,23 @@ def api_batch_upload():
         return jsonify({"error": "No file uploaded."}), 400
 
     file = request.files["file"]
-    if not file.filename.endswith(".csv"):
-        return jsonify({"error": "Only CSV files are supported."}), 400
-
     try:
-        df = pd.read_csv(file)
-        # Check text column
-        candidate_cols = ["review_text", "feedback", "review", "text", "comment", "feedback_text"]
-        text_col = None
-        for col in candidate_cols:
-            if col in df.columns:
-                text_col = col
-                break
+        df, metadata = read_feedback_file(file, request.form.get('sheet') or None)
+        text_col = request.form.get('text_column') or metadata['suggested_column']
         if text_col is None:
-            # Fall back to first string column
-            str_cols = df.select_dtypes(include=['object']).columns
-            if len(str_cols) > 0:
-                text_col = str_cols[0]
-            else:
-                return jsonify({"error": "No text column found in CSV."}), 400
-
+            return jsonify({'error': 'Please choose which column contains the customer feedback.', 'columns': metadata['columns']}), 400
         pipe = get_pipeline()
         enriched_df, analytics = pipe.predict_batch(df, text_column=text_col)
-
-        # Return top 250 rows for frontend rendering
-        reviews_sample = enriched_df.head(250).to_dict(orient="records")
         return jsonify({
             "analytics": analytics,
-            "reviews": reviews_sample
+            "reviews": json.loads(enriched_df.to_json(orient='records', date_format='iso')),
+            'text_column': text_col,
+            'sheet': metadata['sheet']
         })
+    except (ValueError, pd.errors.ParserError) as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({"error": f"Failed to process CSV: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to process feedback: {str(e)}"}), 500
 
 @app.route("/api/metrics", methods=["GET"])
 def api_metrics():
@@ -90,6 +91,11 @@ def api_metrics():
     if os.path.exists(metrics_path):
         with open(metrics_path, "r", encoding="utf-8") as f:
             data = json.load(f)
+        for key, filename in [('real_review_evaluation', 'real_review_evaluation.json'), ('baseline_real_review_evaluation', 'baseline_real_review_evaluation.json')]:
+            evaluation_path = os.path.join(BASE_DIR, 'models', filename)
+            if os.path.exists(evaluation_path):
+                with open(evaluation_path, encoding='utf-8') as f:
+                    data[key] = json.load(f)
         return jsonify(data)
     else:
         return jsonify({"error": "Metrics not found. Please train models first."}), 404
