@@ -1,0 +1,112 @@
+{
+  "samples": 594,
+  "results": {
+    "classic": {
+      "accuracy": 0.8468013468013468,
+      "macro_f1_binary_labels": 0.847514408199188,
+      "correct": 503,
+      "classification_report": {
+        "Negative": {
+          "precision": 0.8433333333333334,
+          "recall": 0.8518518518518519,
+          "f1-score": 0.847571189279732,
+          "support": 297.0
+        },
+        "Neutral": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "Positive": {
+          "precision": 0.8532423208191127,
+          "recall": 0.8417508417508418,
+          "f1-score": 0.847457627118644,
+          "support": 297.0
+        },
+        "accuracy": 0.8468013468013468,
+        "macro avg": {
+          "precision": 0.5655252180508153,
+          "recall": 0.564534231200898,
+          "f1-score": 0.5650096054661253,
+          "support": 594.0
+        },
+        "weighted avg": {
+          "precision": 0.848287827076223,
+          "recall": 0.8468013468013468,
+          "f1-score": 0.847514408199188,
+          "support": 594.0
+        }
+      },
+      "by_source": {
+        "imdb_labelled": {
+          "samples": 199,
+          "accuracy": 0.8090452261306532
+        },
+        "amazon_cells_labelled": {
+          "samples": 196,
+          "accuracy": 0.8775510204081632
+        },
+        "yelp_labelled": {
+          "samples": 199,
+          "accuracy": 0.8542713567839196
+        }
+      },
+      "elapsed_seconds": 0.27
+    },
+    "context": {
+      "accuracy": 0.9057239057239057,
+      "macro_f1_binary_labels": 0.9165237328225444,
+      "correct": 538,
+      "classification_report": {
+        "Negative": {
+          "precision": 0.9246575342465754,
+          "recall": 0.9090909090909091,
+          "f1-score": 0.9168081494057725,
+          "support": 297.0
+        },
+        "Neutral": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "Positive": {
+          "precision": 0.9305555555555556,
+          "recall": 0.9023569023569024,
+          "f1-score": 0.9162393162393162,
+          "support": 297.0
+        },
+        "accuracy": 0.9057239057239057,
+        "macro avg": {
+          "precision": 0.618404363267377,
+          "recall": 0.6038159371492705,
+          "f1-score": 0.6110158218816962,
+          "support": 594.0
+        },
+        "weighted avg": {
+          "precision": 0.9276065449010655,
+          "recall": 0.9057239057239057,
+          "f1-score": 0.9165237328225443,
+          "support": 594.0
+        }
+      },
+      "by_source": {
+        "imdb_labelled": {
+          "samples": 199,
+          "accuracy": 0.8994974874371859
+        },
+        "amazon_cells_labelled": {
+          "samples": 196,
+          "accuracy": 0.9183673469387755
+        },
+        "yelp_labelled": {
+          "samples": 199,
+          "accuracy": 0.8994974874371859
+        }
+      },
+      "elapsed_seconds": 7.12
+    }
+  },
+  "note": "Fixed UCI positive/negative development benchmark, excluded from local SVM training but consulted during hybrid refinement. Upstream pretrained BERT training overlap is unknown. No real neutral labels. This does not establish independent three-class or target-domain accuracy."
+}

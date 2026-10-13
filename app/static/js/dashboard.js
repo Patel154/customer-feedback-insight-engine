@@ -141,10 +141,10 @@ async function previewFile(file, sheet=null) {
     const metadata = await requestJSON('/api/preview_upload', {method:'POST',body:fileForm(sheet)});
     if (sequence !== uploadSequence) return;
     $('selectedFileName').textContent = file.name;
-    $('selectedFileMeta').textContent = `${metadata.total_rows.toLocaleString()} rows · ${metadata.columns.length} columns · English feedback`;
+    $('selectedFileMeta').textContent = `${metadata.total_rows.toLocaleString()} rows · ${metadata.columns.length} columns · Header row ${metadata.header_row || 1} · English feedback${metadata.warnings?.length ? ' · ' + metadata.warnings.join(' ') : ''}`;
     $('sheetControl').classList.toggle('hidden', !metadata.sheets.length);
     $('sheetSelect').replaceChildren(...metadata.sheets.map(name => new Option(name, name, false, name === metadata.sheet)));
-    $('textColumnSelect').replaceChildren(new Option('Choose the feedback column…',''), ...metadata.columns.map(name => new Option(name, name, false, name === metadata.suggested_column)));
+    $('textColumnSelect').replaceChildren(new Option('Choose the feedback column…',''), ...metadata.columns.map(name => { const option = new Option(name, name, false, name === metadata.suggested_column); option.disabled = (metadata.metadata_columns || []).includes(name); return option; }));
     $('previewTable').querySelector('thead').innerHTML = `<tr>${metadata.columns.map(c => `<th>${escapeHTML(c)}</th>`).join('')}</tr>`;
     $('previewTable').querySelector('tbody').innerHTML = metadata.preview.map(row => `<tr>${metadata.columns.map(c => `<td>${escapeHTML(String(row[c] ?? '').slice(0,200))}</td>`).join('')}</tr>`).join('');
     $('uploadPreview').classList.remove('hidden');
@@ -182,7 +182,7 @@ function renderBatchAnalytics(data) {
   $('kpiPosCount').textContent = `${a.sentiment_counts.Positive || 0} positive reviews`;
   $('kpiNegCount').textContent = `${a.sentiment_counts.Negative || 0} negative reviews`;
   $('kpiReview').textContent = a.needs_review.toLocaleString();
-  $('batchQuality').textContent = `${a.total_samples} valid reviews analyzed. ${a.skipped_rows} blank or invalid rows skipped; ${a.needs_review} predictions need review. ${a.mixed_reviews} reviews contain mixed aspect opinions. ${a.duplicate_reviews} repeated reviews are retained in the totals. Percentages use analyzed reviews only. Mean confidence: ${pct(a.avg_confidence)} — this is not measured accuracy.`;
+  $('batchQuality').textContent = `${a.total_samples} valid reviews analyzed using ${a.analysis_engine || 'the sentiment model'}. ${a.skipped_rows} blank or invalid rows skipped; ${a.needs_review} predictions need review. ${a.mixed_reviews} reviews contain mixed aspect opinions. ${a.duplicate_reviews} repeated reviews are retained in the totals. Percentages use analyzed reviews only. Mean confidence: ${pct(a.avg_confidence)} — these uncalibrated scores are not measured accuracy.`;
   const positive = a.sentiment_percentages.Positive || 0;
   const neutral = a.sentiment_percentages.Neutral || 0;
   $('sentimentChart').innerHTML = `<div class="donut" role="img" aria-label="${labels.map(label => `${label}: ${a.sentiment_counts[label] || 0}`).join(', ')}" style="background:conic-gradient(var(--positive) 0% ${positive}%,var(--neutral) ${positive}% ${positive + neutral}%,var(--negative) ${positive + neutral}% 100%)"><div class="donut-center"><strong>${a.total_samples.toLocaleString()}</strong><small>reviews analyzed</small></div></div><div class="chart-legend">${labels.map(label => `<div><span class="tiny-dot ${label.toLowerCase()}"></span><span>${label}<small>${a.sentiment_percentages[label] || 0}% of reviews</small></span><strong>${a.sentiment_counts[label] || 0}</strong></div>`).join('')}</div>`;
@@ -237,16 +237,13 @@ function exportBatchToCSV() {
 async function fetchMetrics() {
   try {
     const data = await requestJSON('/api/metrics');
-    $('sidebarModelStatus').textContent = data.best_model_name;
+    $('sidebarModelStatus').textContent = data.active_engine || data.best_model_name;
     const real = data.real_review_evaluation;
-    const baseline = data.baseline_real_review_evaluation;
+    $('selectedModelName').textContent = data.active_engine || data.best_model_name;
     if (real) {
       $('overviewAccuracy').textContent = pct(real.accuracy);
       $('overviewSamples').textContent = real.samples.toLocaleString();
-      $('realAccuracy').textContent = pct(real.accuracy);
-      $('externalDetails').textContent = `${real.samples} held-out reviews · Amazon ${pct(real.by_source.amazon_cells_labelled.accuracy)} · Yelp ${pct(real.by_source.yelp_labelled.accuracy)} · IMDb ${pct(real.by_source.imdb_labelled.accuracy)}`;
     }
-    if (baseline) $('baselineAccuracy').textContent = pct(baseline.accuracy);
     const dataset = data.dataset;
     $('trainingDetails').textContent = dataset ? `${dataset.samples.toLocaleString()} deduplicated examples · ${dataset.train_samples.toLocaleString()} train / ${dataset.test_samples.toLocaleString()} internal test · Word + character TF-IDF · Model: ${data.best_model_name}` : 'Training metadata unavailable.';
     $('benchmarkTable').querySelector('tbody').innerHTML = Object.entries(data.comparison).map(([name,r]) => `<tr class="${name === data.best_model_name ? 'winner-row' : ''}"><td>${escapeHTML(name)}${name === data.best_model_name ? '<span class="winner-badge">SELECTED BY TRAINING CV</span>' : ''}</td><td>${r.cv_f1_macro_mean.toFixed(3)} ± ${r.cv_f1_macro_std.toFixed(3)}</td><td>${pct(r.test_accuracy)}</td><td>${pct(r.test_f1_macro)}</td><td>${pct(r.test_precision_macro)}</td><td>${pct(r.test_recall_macro)}</td></tr>`).join('');

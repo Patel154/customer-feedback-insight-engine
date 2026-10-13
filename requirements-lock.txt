@@ -34,3 +34,21 @@ tqdm==4.70.1
 tzdata==2026.4
 werkzeug==3.1.9
 wordcloud==1.9.6
+
+# Local contextual inference dependencies
+onnxruntime==1.31.0
+tokenizers==0.23.3
+flatbuffers==25.12.19
+protobuf==7.36.2
+huggingface-hub==2.2.0
+filelock==4.1.1
+fsspec==2026.9.0
+hf-xet==1.7.0
+httpx2==2.13.1
+pyyaml==6.0.3
+anyio==4.15.1
+httpcore2==2.13.1
+idna==3.20
+truststore==0.10.5
+h11==0.16.0
+typing-extensions==4.16.0

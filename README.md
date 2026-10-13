@@ -3,7 +3,7 @@
 **5th semester Artificial Intelligence project**
 
 An English customer-feedback analysis dashboard built with Flask, scikit-learn,
-NLTK and pandas. Analyze a review or upload a feedback file to classify sentiment,
+NLTK, pandas and local ONNX inference. Analyze a review or upload a feedback file to classify sentiment,
 inspect aspect-specific evidence, discover topics and summarize business issues.
 
 ## Run the dashboard
@@ -22,10 +22,13 @@ For a new machine, use Python **3.12** and install the locked dependencies:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
+.\.venv\Scripts\python.exe src\download_context_model.py
 .\.venv\Scripts\python.exe app\app.py
 ```
 
-The trained models are included. Retraining is optional. Pickled scikit-learn
+The locally trained SVM artifacts are included. The pretrained BERT weights need a
+one-time download (approximately 168 MB); they are already installed in this workspace.
+Predictions run locally without sending uploaded reviews to a service. Retraining the SVM is optional. Pickled scikit-learn
 models should be loaded with the same version used to train them; the lock file
 records the working environment. Only load model artifacts you trust.
 
@@ -59,69 +62,62 @@ review**. Unsupported or blank rows remain in the exported report and are
 excluded from sentiment percentages. Repeated reviews are counted and reported.
 Only English is supported; sarcasm and new domains may need manual review.
 
-## Accuracy and evaluation
+## Active model and evaluation
 
-The previous classifier relied on a small generated dataset. The revised corpus
-adds real English reviews from UCI, short sentiment/negation teaching examples
-and explicit neutral examples. Text is normalized with a consistent offline
-Snowball stemmer; negations and context words are retained. Features combine
-word TF-IDF (1–3 grams) and character TF-IDF (3–5 grams).
+The active engine combines a pretrained **BERT product-review classifier** with
+the locally trained calibrated Linear SVM. BERT preserves word order, punctuation
+and context. Its five star probabilities are mapped to Negative (1-2), Neutral (3)
+and Positive (4-5). The SVM supplies specialist evidence for short factual text,
+mild criticism and uncertain contextual predictions. Disagreements are flagged.
+These combined confidence scores are **uncalibrated estimates**, not accuracy.
 
-The same **594 held-out real reviews**, excluded from revised training and model
-selection, were used to compare both versions:
+BERT is an existing pretrained model, not a model trained from scratch by this
+project. Source: [NLP Town model card](https://huggingface.co/nlptown/bert-base-multilingual-uncased-sentiment)
+(MIT); the pinned quantized ONNX conversion is downloaded from Xenova.
+Long reviews use overlapping 512-token windows instead of silently truncating
+at the first window. Duplicate text is cached locally in memory.
 
-| Evaluation | Previous model | Revised model |
+| Fixed UCI benchmark | Correct / total | Accuracy |
 | --- | ---: | ---: |
-| Real-review holdout accuracy | 52.0% | 84.7% |
-| Amazon subset (196 reviews) | 59.7% | 88.8% |
-| Yelp subset (199 reviews) | 46.7% | 87.4% |
-| IMDb subset (199 reviews) | 49.7% | 80.9% |
+| Local TF-IDF + calibrated SVM | 503 / 594 | 84.7% |
+| Active BERT + SVM pipeline | 538 / 594 | 90.6% |
 
-These are measured results for this fixed test corpus, **not a promise of accuracy
-on every uploaded file**. UCI labels are positive/negative only, so this external
-test does not validate real neutral feedback. Neutral training examples are
-generated or curated. The internal benchmark also contains shared synthetic
-templates and is reported separately. Prediction confidence is not accuracy.
+This benchmark contains only positive/negative English Amazon, Yelp and IMDb
+reviews. They were excluded from local SVM training, but benchmark errors were
+consulted during refinement of the hybrid. Overlap with upstream BERT training
+is also **unknown**. Thus 90.6% is a development benchmark result, not an
+independent generalization estimate. It does not measure real neutral accuracy
+or establish accuracy on arbitrary uploads.
+Development examples and user-file corrections are regression checks, not an
+independent accuracy estimate. A fresh labeled target-domain test is still needed.
+Reproducible results and caveats are in `models/context_evaluation.json`.
 
-Four models are compared with 5-fold training-only cross-validation: Naive Bayes,
-Logistic Regression, calibrated Linear SVM and Random Forest. TF-IDF is fitted
-inside every CV fold. Selection uses training CV macro F1; neither test set is
-used to choose the winner. Exact normalized duplicates and conflicting labels
-are removed. Internal train/test text and the external holdout do not overlap.
+The academic baseline compares Naive Bayes, Logistic Regression, calibrated
+Linear SVM and Random Forest using 5-fold training-only CV with TF-IDF fitted
+inside each fold. The selected SVM scored 0.868 CV macro F1 and 87.5% internal
+accuracy. Internal data includes synthetic teaching examples. These baseline
+results remain separately displayed on the Model evaluation page.
 
-Selected classifier: **calibrated Linear SVM**. Internal test accuracy: **87.5%**;
-training CV macro F1: **0.868**. Current values come from
-`models/model_metrics.json`, `models/baseline_real_review_evaluation.json` and
-`models/real_review_evaluation.json` and are displayed in **Model evaluation**.
+### Understanding uploaded sheets
 
-Recommendations summarize observed complaint proportions; they are suggestions,
-not causal evidence or guarantees of revenue, retention or cost improvements.
-Aspect detection uses a predefined English keyword vocabulary; LDA topics are
-unsupervised hints, not exact aspect labels.
+The reader detects recognized headers within the first 20 rows and can skip an
+Excel cover sheet. It recognizes `Feedback / Comments`, preserves blank rows
+and original row numbers, rejects duplicate headers, and skips repeated headers
+inside the data. Metadata such as ratings, customer names and business-aspect
+labels is not silently selected as review text. Ambiguous columns require a choice.
 
-### Aspect coverage and contextual feedback fixes
-
-The aspect matcher now matches normalized whole words and phrases, including
-arrival inflections, damage, instructions and product functionality. The chart
-shows recognized-aspect coverage and a separate general/unrecognized count;
-zero matches are explained instead of displaying five empty bars. Missing
-matches do not establish that a business area has no problems. Reviews may
-contribute to more than one aspect, and complaint counts determine display order.
-
-Contrastive teaching examples distinguish defects from undamaged deliveries,
-factual arrival statements, and criticism such as "could be better" from praise
-such as "could not be better". Comparative "better" is retained during preprocessing.
-These fixes pass the regression suite. The fixed real-review benchmark changed
-from 85.7% before this refinement to 84.7% afterwards (503/594 correct), while
-training CV macro F1 increased from 0.841 to 0.868. This is a domain-specific
-improvement with a small external regression, not a universal accuracy gain.
-Regression examples are development checks, not an independent accuracy estimate.
+Aspect detection still uses five predefined English vocabularies with contextual
+guards. Tracking belongings, lost keys and airport luggage are no longer treated
+as seller delivery problems just because of generic words. Related opinion
+clauses retain their subject and contrast. Uncertain aspect predictions also
+flag the review. Read the displayed evidence before acting on a recommendation;
+aspect coverage and recommendations remain heuristic, not causal findings.
 
 ## Reproduce training and tests
 
 ```powershell
 .\.venv-codex\Scripts\python.exe src\train.py
-.\.venv-codex\Scripts\python.exe src\evaluate_real_reviews.py
+.\.venv-codex\Scripts\python.exe src\evaluate_context_model.py
 .\.venv-codex\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
@@ -146,7 +142,9 @@ and run `python -m jupyterlab notebooks/sentiment_analysis_and_insights.ipynb`.
 | `src/predictor.py` | Shared single/batch inference and input-quality checks |
 | `src/insights.py` | Clause-level aspects, topics and recommendations |
 | `src/train.py` | Leakage-aware model benchmarking and model export |
-| `src/evaluate_real_reviews.py` | Fixed external holdout evaluation |
+| `src/evaluate_context_model.py` | Fixed benchmark comparison with explicit pretrained-model limits |
+| `src/context_sentiment.py` | Local contextual inference, windowing and caching |
+| `src/download_context_model.py` | One-time pinned model download |
 | `tests/test_project.py` | Regression tests for analysis and upload behavior |
 | `notebooks/` | Reproducible academic walkthrough |
 

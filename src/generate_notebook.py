@@ -28,7 +28,7 @@ from src.train import load_and_clean_data, train_and_evaluate_models
 from src.evaluate_real_reviews import evaluate
 pipe = SentimentInsightPipeline(ROOT / 'models')
 metrics = json.loads((ROOT / 'models/model_metrics.json').read_text(encoding='utf8'))
-print('Deployed classifier:', metrics['best_model_name'])''')
+print('Deployed classifier:', pipe.engine_name)''')
     md('''## 1. Data sources and label coverage
 UCI Sentiment Labelled Sentences (Kotzias, 2015, DOI 10.24432/C57604,
 CC BY 4.0) provides real Amazon, Yelp and IMDb positive/negative sentences.
@@ -39,7 +39,9 @@ before training, including after text normalization.''')
 display(data.groupby(['source', 'sentiment']).size().unstack(fill_value=0))
 print('Deduplicated training/evaluation corpus:', len(data))
 display(data[['review_text', 'sentiment', 'source']].sample(8, random_state=42))''')
-    md('''## 2. Preprocessing and feature extraction
+    md('''## 2. Classical baseline preprocessing and feature extraction
+The active BERT model instead preserves punctuation and uses contextual tokens.
+It runs locally with overlapping windows; the SVM remains a specialist.
 Expand contractions, retain negation and context words, remove URLs/HTML and
 normalize with the same offline Snowball stemmer on every machine. Word TF-IDF
 (1–3 grams) captures phrases; character TF-IDF (3–5 grams) captures spelling
@@ -47,7 +49,7 @@ patterns. We do not switch preprocessing based on installed WordNet data.''')
     code('''for text in ['The product is good.', 'The product is not good.', 'The app isn’t reliable.']:
     print(text, '->', pipe.preprocess(text))
 print(metrics['feature_extraction'])''')
-    md('''## 3. Training without test-set selection
+    md('''## 3. Classical baseline training without test-set selection
 Exact normalized duplicates and conflicting labels are removed. The remaining
 corpus is split 80/20 with a fixed seed and class stratification. Four algorithms
 use the same 5-fold training-only cross-validation. TF-IDF is fitted inside each
@@ -56,21 +58,22 @@ external test scores choose the winner. Shared generated templates can still
 make internal evaluation easier than real reviews.
 
 The cell below displays saved results. Retraining is optional and should be run
-with `python src/train.py`, followed by `python src/evaluate_real_reviews.py`.''')
+with `python src/train.py`, followed by `python src/evaluate_context_model.py`.''')
     code('''comparison = pd.DataFrame(metrics['comparison']).T
 display(comparison[['cv_f1_macro_mean', 'cv_f1_macro_std', 'test_accuracy', 'test_f1_macro', 'test_precision_macro', 'test_recall_macro']])
 display(Image(filename=str(ROOT / 'models/model_comparison.png')))
 display(Image(filename=str(ROOT / 'models/confusion_matrix.png')))''')
-    md('''## 4. Separate real-review evaluation
-The same 594 excluded real reviews compare the original and revised models.
-This test covers positive and negative reviews only and does not establish
-accuracy on real neutral feedback. Confidence is a model estimate, not accuracy.
-Do not infer that any test-corpus score guarantees performance on all uploads.''')
-    code('''baseline = json.loads((ROOT / 'models/baseline_real_review_evaluation.json').read_text())
-real = json.loads((ROOT / 'models/real_review_evaluation.json').read_text())
-display(pd.DataFrame({'Version':['Previous','Revised'], 'Real holdout accuracy':[baseline['accuracy'],real['accuracy']], 'Samples':[baseline['samples'],real['samples']]}))
-display(pd.DataFrame(real['by_source']).T)
-print(metrics['limitations'])''')
+    md('''## 4. Contextual model and real-review benchmark
+The active engine uses pretrained BERT product-review sentiment plus a local SVM
+specialist. The project did not train BERT from scratch. Five star probabilities
+map to three sentiments. All inference runs locally.
+The fixed 594-review UCI benchmark was excluded from local SVM training, but
+its errors informed hybrid refinement; upstream BERT training overlap is unknown.
+It is a development benchmark with no neutral labels and cannot establish
+three-class accuracy on future uploads. Scores are uncalibrated.''')
+    code('''evaluation = json.loads((ROOT / 'models/context_evaluation.json').read_text())
+display(pd.DataFrame(evaluation['results']).T[['accuracy', 'correct', 'elapsed_seconds']])
+print(evaluation['note'])''')
     md('''## 5. Negation and aspect-level evidence
 The classifier predicts overall Positive/Neutral/Negative sentiment. Business
 aspects use keyword detection with word boundaries and classify their relevant

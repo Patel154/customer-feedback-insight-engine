@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 server.*.log
 data/raw/uci_sentiment.zip
+models/context_sentiment/
+models/review_sentiment/

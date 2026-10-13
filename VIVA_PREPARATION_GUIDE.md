@@ -2,12 +2,19 @@
 ## Project: Automated Sentiment Analysis and Insight Extraction from Customer Feedback
 **Subject:** Artificial Intelligence (5th Semester)
 
-**Current implementation and evaluation:** Word + character TF-IDF, deterministic
-offline Snowball stemming and calibrated Linear SVM. The fixed 594-review real
-UCI positive/negative holdout measured 52.0% accuracy for the previous model and
-84.7% for the revised model. This does not measure real neutral accuracy. Internal
-evaluation includes synthetic examples; confidence is not accuracy. Model
-selection uses training CV macro F1 with features fitted inside each fold.
+**Current implementation and evaluation:** The active pipeline uses pretrained
+BERT product-review sentiment through local quantized ONNX inference, plus a
+locally trained TF-IDF calibrated SVM specialist. BERT was not trained from
+scratch in this project. It predicts five star probabilities mapped to three
+sentiments. The active pipeline scored 538/594 (90.6%) on the fixed UCI binary
+benchmark versus 503/594 (84.7%) for the SVM. These reviews were excluded from
+local SVM training, but their errors informed hybrid refinement; upstream BERT
+overlap is unknown. This is a development benchmark and does not measure
+three-class accuracy on future uploads. Scores are uncalibrated confidence.
+
+The classical algorithm comparison and its training-only CV remain an academic
+baseline. The sections below on TF-IDF, stemming and classical training describe
+that baseline; BERT instead receives contextual tokenization without stemming.
 
 ---
 
@@ -24,11 +31,11 @@ selection uses training CV macro F1 with features fitted inside each fold.
 ## 2. Text Preprocessing & NLP Pipeline
 
 ### Q3: What preprocessing steps did you implement on raw text?
-**Answer:**
-1. **Contraction Expansion:** Normalizing colloquial contractions (e.g., *"won't"* $\to$ *"will not"*, *"didn't"* $\to$ *"did not"*).
-2. **Noise Removal:** Stripping HTML tags, URLs, email addresses, numbers, and special non-alphanumeric symbols.
-3. **Context Preservation:** The deployed classifier retains stopwords and negation so phrases such as *"not good"* and *"would not recommend"* keep their meaning.
-4. **Offline Snowball Stemming:** The same deterministic normalizer is used in training and inference. This avoids a preprocessing change when WordNet data is present on one computer but absent on another.
+**Answer:** The BERT path removes HTML, normalizes URLs and common positive
+idioms, and preserves punctuation, negation and word order. Its tokenizer uses
+512-token windows with overlap; every window contributes to a long review.
+The local SVM and LDA paths expand contractions and use deterministic offline
+Snowball stemming. Single and batch analysis share the same prediction path.
 
 ### Q4: What is the difference between Stemming and Lemmatization? Why did you choose Stemming?
 **Answer:**
@@ -69,7 +76,7 @@ High TF-IDF occurs when a term appears frequently in a single document but rarel
 3. **Linear Support Vector Machine (LinearSVC with Probability Calibration)**
 4. **Random Forest Classifier (Ensemble of 80 Decision Trees)**
 
-**Winning Model:** Calibrated Linear SVM was selected by training-only 5-fold macro F1 (0.868). It measured 87.5% internal accuracy and 84.7% accuracy on the independent 594-review UCI positive/negative holdout. The internal test contains synthetic examples, and the external test does not cover real neutral feedback.
+**Winning classical baseline:** Calibrated Linear SVM was selected by training-only 5-fold macro F1 (0.868). It measured 87.5% internal accuracy and 84.7% accuracy on the independent 594-review UCI positive/negative holdout. The internal test contains synthetic examples, and the external test does not cover real neutral feedback.
 
 ### Q10: Explain the mathematics of Multinomial Naive Bayes. What is the "naive" assumption?
 **Answer:** By Bayes' Theorem:
@@ -131,7 +138,7 @@ In customer satisfaction analytics, minimizing False Negatives on severe complai
 
 ### Q18: What is the inference time per review? Can this system scale to 1 million reviews?
 **Answer:**
-- Current classifier timing is recorded in `models/model_metrics.json`. This benchmark measures classifier/feature prediction on the internal test batch; it does not include complete upload, aspect analysis, topic modeling or browser time. The demo supports 10,000 rows per upload, rather than claiming million-row production capacity.
+- Classical classifier timing is recorded in `models/model_metrics.json`; the active contextual benchmark timing is in `models/context_evaluation.json`. This benchmark measures classifier/feature prediction on the internal test batch; it does not include complete upload, aspect analysis, topic modeling or browser time. The demo supports 10,000 rows per upload, rather than claiming million-row production capacity.
 - **To scale to 1M reviews/day:**
   1. Ingest reviews asynchronously via an Apache Kafka or RabbitMQ event queue.
   2. Deploy the Python inference pipeline on Celery workers or containerized microservices (Docker + Kubernetes).

@@ -20,7 +20,8 @@ def evaluate(output):
                'classification_report': classification_report(data.sentiment, predictions, zero_division=0, output_dict=True),
                'by_source': {source: {'samples': int((data.source == source).sum()),
                    'accuracy': accuracy_score(data.loc[data.source == source, 'sentiment'], predictions[data.source == source])} for source in data.source.unique()},
-               'note': 'Fixed UCI holdout, positive/negative labels only; not used for model selection.'}
+               'engine': pipe.engine_name,
+               'note': 'Fixed UCI positive/negative development benchmark, excluded from local SVM training but consulted during hybrid refinement. Upstream pretrained BERT training overlap is unknown. No real neutral labels; this does not establish independent three-class or target-domain accuracy.'}
     Path(output).write_text(json.dumps(metrics, indent=2), encoding='utf-8')
     print(json.dumps({k: metrics[k] for k in ('samples', 'accuracy', 'macro_f1', 'by_source')}, indent=2))
 

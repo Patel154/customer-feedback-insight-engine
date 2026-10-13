@@ -11,31 +11,31 @@ from src.preprocess import clean_text
 
 ASPECT_LEXICON = {
     "Product Quality": [
-        "quality", "build", "material", "durability", "durable", "sturdy",
-        "battery", "screen", "display", "hardware", "performance", "defect",
-        "defective", "broke", "broken", "lag", "crash", "overheat", "heat",
-        "finish", "casing", "hinge", "pixel", "microphone", "sound", "product", "device", "item",
-        "damage", "faulty", "malfunction", "works perfectly", "stopped working", "does not work", "turn on"
+        "quality", "build", "material", "durability", "durable", "sturdy", "battery",
+        "screen", "hardware", "performance", "defect", "defective", "broke", "broken",
+        "lag", "crash", "overheat", "hinge", "pixel", "microphone", "sound", "damage",
+        "faulty", "malfunction", "works perfectly", "stopped working", "does not work",
+        "turn on", "functionality", "accuracy", "connectivity", "tracking accuracy",
+        "tracker", "airtag", "gps", "location", "range", "works fine"
     ],
     "Customer Support": [
-        "support", "service", "agent", "representative", "rep", "call", "chat",
-        "helpdesk", "warranty", "claim", "replacement", "refund", "exchange",
-        "ticket", "courteous", "polite", "rude", "unresponsive", "hold", "email"
+        "support", "customer service", "helpdesk", "warranty", "refund", "exchange",
+        "customer care", "staff", "representative", "technician", "emails", "response time"
     ],
     "Delivery & Packaging": [
-        "delivery", "shipping", "courier", "package", "packaging", "box",
-        "wrap", "transit", "ship", "dispatch", "arrive", "arrival", "late",
-        "delay", "delayed", "lost", "crushed", "doorstep", "tracking", "delivered", "parcel", "received"
+        "delivery", "shipping", "courier", "package", "packaging", "box", "parcel",
+        "dispatch", "shipment", "delivered", "arrive", "arrival", "doorstep", "fulfillment"
     ],
     "Pricing & Value": [
-        "price", "pricing", "cost", "expensive", "cheap", "value", "money",
-        "budget", "affordable", "discount", "deal", "overpriced", "worth",
-        "penny", "rip-off", "investment", "economic", "gouging"
+        "price", "pricing", "pricey", "cost", "value", "money", "budget", "affordable",
+        "discount", "deal", "overpriced", "worth", "rip off", "bargain", "on sale",
+        "absolute steal", "investment", "economical", "monthly charges", "subscription"
     ],
     "Usability & UI": [
-        "app", "software", "ui", "interface", "setup", "pair", "pairing",
-        "bluetooth", "navigate", "navigation", "button", "control", "ergonomic",
-        "ergonomics", "bug", "glitch", "freeze", "display", "setting", "manual", "instructions", "user guide", "easy to use", "hard to use"
+        "app", "software", "ui", "interface", "setup", "set up", "pair", "pairing",
+        "bluetooth", "navigate", "navigation", "button", "control", "ergonomic", "usability",
+        "bug", "glitch", "freeze", "settings", "manual", "instructions", "user guide",
+        "easy to use", "hard to use", "intuitive", "user friendly", "user experience"
     ]
 }
 
@@ -49,35 +49,75 @@ class AspectSentimentAnalyzer:
             for aspect, keywords in self.aspect_lexicon.items()
         }
         
-    def detect_aspects(self, text: str):
-        """Identifies which predefined business aspects are referenced in the review."""
-        # Match complete normalized tokens/phrases: arrived -> arriv, not arriveed.
-        # Boundaries still prevent app from matching apple or application fragments.
+    def detect_aspects(self, text: str, review_context=None):
+        """Match aspect evidence, with contextual guards for ambiguous business terms."""
         normalized = ' ' + clean_text(text, remove_stopwords=False) + ' '
-        found_aspects = {}
-        
+        lower = text.lower()
+        found = {}
         for aspect, keywords in self.normalized_keywords.items():
             matches = [kw for kw, stem in keywords if ' ' + stem + ' ' in normalized]
             if matches:
-                found_aspects[aspect] = list(set(matches))
-                
-        return found_aspects
+                found[aspect] = sorted(set(matches))
+        # Travel and locating belongings are product use cases, not seller logistics.
+        travel = re.search(r'\b(?:airport|airline|flight|luggage|baggage|destination|trip|travel|rental|keys|wallet|dog|cat)\b', lower)
+        if travel and 'Delivery & Packaging' in found:
+            strong = re.search(r'\b(?:shipping|courier|packaging|parcel|shipment|order|delivered|delivery)\b', lower)
+            if not strong:
+                found.pop('Delivery & Packaging')
+        functional_tracking = re.search(r'\b(?:track|tracking|locate|finding)\b', lower) and re.search(
+            r'\b(?:airtag|tracker|gps|location|keys|wallet|pet|dog|cat)\b', (review_context or text).lower())
+        if functional_tracking:
+            found.setdefault('Product Quality', []).append('tracking functionality')
+            if 'Delivery & Packaging' in found and not re.search(r'\b(?:shipping|delivery|courier|packaging|delivered|shipment)\b', lower):
+                found.pop('Delivery & Packaging')
+        if re.search(r'\b(?:they|we|he|she) arrive', lower) and not re.search(r'\b(?:order|parcel|package)\b', lower):
+            found.pop('Delivery & Packaging', None)
+        if re.search(r'\b(?:expensive|cheap)\b', lower):
+            # An expensive bike or a cheap plastic casing is not the purchase price.
+            unrelated = re.search(r'\b(?:expensive|cheap)\s+(?:road\s+)?(?:bike|gear|belongings|plastic|material|casing)', lower)
+            if not unrelated:
+                found.setdefault('Pricing & Value', []).append('expensive / cheap')
+        if re.search(r'\bservice\b', lower) and not re.search(r'\b(?:cellular|network|internet|subscription|delivery)\s+service\b', lower):
+            found.setdefault('Customer Support', []).append('service')
+        # Generic product nouns provide only a fallback, not additional aspect counts.
+        if not found and re.search(r'\b(?:product|device|item)\b', lower):
+            found['Product Quality'] = ['product / device / item']
+        return found
 
     def contexts(self, review_text):
-        # Contrast markers work with or without a preceding comma. Split separate
-        # subjects joined by "and" so good delivery does not mask a broken app.
-        clauses = re.split(
-            r'[.!?;\n]+|\b(?:but|however|although|though|whereas|while|yet)\b|'
-            r'\band\s+(?=(?:(?:the|my|their|this)\s+)?(?:app|product|device|battery|screen|delivery|shipping|packaging|support|service|price|quality|interface)\b)',
-            review_text, flags=re.IGNORECASE)
         contexts = {}
-        for clause in clauses:
-            if not clause.strip():
-                continue
-            for aspect, keywords in self.detect_aspects(clause).items():
+        for sentence in re.split(r'[.!?;\n]+', review_text):
+            previous = {}
+            sentence_entries = {}
+            clauses = re.split(
+                r'\b(?:but|however|although|though|whereas)\b|'
+                r'\band\s+(?=(?:(?:the|my|their|this)\s+)?(?:app|product|device|battery|screen|delivery|shipping|packaging|support|service|price|quality|interface)\b)',
+                sentence, flags=re.IGNORECASE)
+            for clause in clauses:
+                clause = clause.strip(' ,')
+                if not clause:
+                    continue
+                aspects = self.detect_aspects(clause, review_context=review_text)
+                # Carry the subject across "interface is functional but looks outdated".
+                # Do not carry it across separate sentences or into a new named aspect.
+                if not aspects and previous:
+                    aspects = {aspect: ['continued opinion'] for aspect in previous}
+                if aspects:
+                    previous = aspects
+                for aspect, keywords in aspects.items():
+                    entry = sentence_entries.setdefault(aspect, {'keywords': set(), 'clauses': []})
+                    entry['keywords'].update(keywords)
+                    entry['clauses'].append(clause)
+            for aspect, info in sentence_entries.items():
                 entry = contexts.setdefault(aspect, {'keywords': set(), 'clauses': []})
-                entry['keywords'].update(keywords)
-                entry['clauses'].append(clause.strip(' ,'))
+                entry['keywords'].update(info['keywords'])
+                # Preserve a contrast and its subject when it concerns one aspect.
+                # Splitting "functional but looks outdated" loses the intended meaning.
+                complete_clauses = [clause.strip(' ,') for clause in clauses if clause.strip(' ,')]
+                if info['clauses'] == complete_clauses and len(info['clauses']) > 1:
+                    entry['clauses'].append(sentence.strip(' ,'))
+                else:
+                    entry['clauses'].extend(info['clauses'])
         return contexts
 
     def analyze_many(self, texts, classify):
@@ -88,7 +128,9 @@ class AspectSentimentAnalyzer:
                 for clause in info['clauses']:
                     snippets.append(clause)
                     owners.append((index, aspect))
-        predictions = classify(snippets) if snippets else []
+        # Sentence splitting removes delimiters; restore a boundary for the
+        # contextual tokenizer while retaining the original evidence text.
+        predictions = classify([s if s.endswith(('.', '!', '?')) else s + '.' for s in snippets]) if snippets else []
         grouped = defaultdict(list)
         for owner, prediction in zip(owners, predictions):
             grouped[owner].append(prediction)
@@ -103,12 +145,15 @@ class AspectSentimentAnalyzer:
                         for label in ['Negative', 'Neutral', 'Positive']}
                 label = 'Mixed' if mixed else max(mean, key=mean.get)
                 result[aspect] = {'keywords': sorted(info['keywords']), 'snippet': '. '.join(info['clauses']),
-                                  'sentiment': label, 'confidence': None if mixed else round(mean[label], 3)}
+                                  'sentiment': label, 'confidence': None if mixed else round(mean[label], 3),
+                                  'requires_review': any(p.get('requires_review', False) for p in predictions)}
             output.append(result)
         return output
 
-    def analyze_aspect_sentiments(self, review_text: str, sentiment_classifier=None, vectorizer=None):
+    def analyze_aspect_sentiments(self, review_text: str, sentiment_classifier=None, vectorizer=None, classify=None):
         """Compatibility API, using the same clause extraction as batch analysis."""
+        if classify is not None:
+            return self.analyze_many([review_text], classify)[0]
         if sentiment_classifier is None or vectorizer is None:
             return {name: {'keywords': sorted(info['keywords']), 'snippet': '. '.join(info['clauses']),
                            'sentiment': 'Detected', 'confidence': None}

@@ -91,7 +91,8 @@ def api_metrics():
     if os.path.exists(metrics_path):
         with open(metrics_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        for key, filename in [('real_review_evaluation', 'real_review_evaluation.json'), ('baseline_real_review_evaluation', 'baseline_real_review_evaluation.json')]:
+        data['active_engine'] = get_pipeline().engine_name
+        for key, filename in [('real_review_evaluation', 'real_review_evaluation.json'), ('baseline_real_review_evaluation', 'baseline_real_review_evaluation.json'), ('runtime_model', 'runtime_model.json'), ('context_evaluation', 'context_evaluation.json')]:
             evaluation_path = os.path.join(BASE_DIR, 'models', filename)
             if os.path.exists(evaluation_path):
                 with open(evaluation_path, encoding='utf-8') as f:
@@ -109,6 +110,8 @@ def api_download_sample():
 
 @app.route("/static/img/<path:filename>")
 def serve_model_images(filename):
+    if filename == 'pulse.svg':
+        return send_from_directory(os.path.join(app.static_folder, 'img'), filename)
     models_dir = os.path.join(BASE_DIR, "models")
     return send_from_directory(models_dir, filename)
 
