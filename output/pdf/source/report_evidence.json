@@ -1,0 +1,291 @@
+{
+  "files": [
+    {
+      "file": "customer_feedback_500.xlsx",
+      "column": "Feedback",
+      "total_rows": 500,
+      "total_samples": 500,
+      "skipped_rows": 0,
+      "analysis_engine": "BERT product-review sentiment (local ONNX)",
+      "needs_review": 26,
+      "mixed_reviews": 0,
+      "duplicate_reviews": 485,
+      "sentiment_counts": {
+        "Negative": 84,
+        "Neutral": 39,
+        "Positive": 377
+      },
+      "sentiment_percentages": {
+        "Negative": 16.8,
+        "Neutral": 7.8,
+        "Positive": 75.4
+      },
+      "aspect_counts": {
+        "Product Quality": 305,
+        "Customer Support": 15,
+        "Delivery & Packaging": 92,
+        "Pricing & Value": 69,
+        "Usability & UI": 13
+      },
+      "aspect_positive": {
+        "Product Quality": 254,
+        "Customer Support": 0,
+        "Delivery & Packaging": 79,
+        "Pricing & Value": 57,
+        "Usability & UI": 0
+      },
+      "aspect_negative": {
+        "Product Quality": 39,
+        "Customer Support": 15,
+        "Delivery & Packaging": 13,
+        "Pricing & Value": 12,
+        "Usability & UI": 13
+      },
+      "aspect_neutral": {
+        "Product Quality": 12,
+        "Customer Support": 0,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 0,
+        "Usability & UI": 0
+      },
+      "aspect_mixed": {
+        "Product Quality": 0,
+        "Customer Support": 0,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 0,
+        "Usability & UI": 0
+      },
+      "reviews_with_aspects": 390,
+      "reviews_without_aspects": 110,
+      "general_sentiment_counts": {
+        "Negative": 17,
+        "Neutral": 14,
+        "Positive": 79
+      },
+      "avg_confidence": 0.954,
+      "top_topics": {
+        "Topic 2: good / great / purchas": 184,
+        "Topic 4: deliveri / regard / packag": 157,
+        "Topic 3: regard / custom / support": 133,
+        "Topic 1: time / bad / film": 14,
+        "Topic 5: product / realli / regard": 12
+      },
+      "recommendations": [
+        {
+          "severity": "LOW",
+          "category": "Aspect Coverage",
+          "finding": "110 reviews have no recognized business aspect.",
+          "action": "Check the selected feedback column and read general or unrecognized reviews. Ask for specific details before assigning an issue to a business area.",
+          "impact": "Missing aspect matches do not mean there are no business problems."
+        },
+        {
+          "severity": "HIGH",
+          "category": "Support Operations",
+          "finding": "100.0% negative sentiment regarding Customer Service.",
+          "action": "Reduce wait times with smart triage routing and train front-line agents on empathetic de-escalation.",
+          "impact": "May improve support satisfaction; measure outcomes after any process changes."
+        },
+        {
+          "severity": "MEDIUM",
+          "category": "Software & UX",
+          "finding": "100.0% negative sentiment in Usability & UI (13 negative mentions).",
+          "action": "Inspect the cited software and usability reviews. Reproduce recurring problems and prioritize the most frequent verified issue.",
+          "impact": "May improve usability; confirm the effect with subsequent feedback."
+        }
+      ]
+    },
+    {
+      "file": "customer_feedback_750.xlsx",
+      "column": "Feedback / Comments",
+      "total_rows": 750,
+      "total_samples": 750,
+      "skipped_rows": 0,
+      "analysis_engine": "BERT product-review sentiment (local ONNX)",
+      "needs_review": 84,
+      "mixed_reviews": 0,
+      "duplicate_reviews": 713,
+      "sentiment_counts": {
+        "Negative": 222,
+        "Neutral": 32,
+        "Positive": 496
+      },
+      "sentiment_percentages": {
+        "Negative": 29.6,
+        "Neutral": 4.3,
+        "Positive": 66.1
+      },
+      "aspect_counts": {
+        "Product Quality": 162,
+        "Customer Support": 160,
+        "Delivery & Packaging": 164,
+        "Pricing & Value": 167,
+        "Usability & UI": 148
+      },
+      "aspect_positive": {
+        "Product Quality": 90,
+        "Customer Support": 24,
+        "Delivery & Packaging": 121,
+        "Pricing & Value": 141,
+        "Usability & UI": 120
+      },
+      "aspect_negative": {
+        "Product Quality": 41,
+        "Customer Support": 135,
+        "Delivery & Packaging": 43,
+        "Pricing & Value": 23,
+        "Usability & UI": 13
+      },
+      "aspect_neutral": {
+        "Product Quality": 31,
+        "Customer Support": 1,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 3,
+        "Usability & UI": 15
+      },
+      "aspect_mixed": {
+        "Product Quality": 0,
+        "Customer Support": 0,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 0,
+        "Usability & UI": 0
+      },
+      "reviews_with_aspects": 750,
+      "reviews_without_aspects": 0,
+      "general_sentiment_counts": {
+        "Negative": 0,
+        "Neutral": 0,
+        "Positive": 0
+      },
+      "avg_confidence": 0.9,
+      "top_topics": {
+        "Topic 4: deliveri / regard / packag": 345,
+        "Topic 5: product / realli / regard": 133,
+        "Topic 3: regard / custom / support": 131,
+        "Topic 2: good / great / purchas": 91,
+        "Topic 1: time / bad / film": 50
+      },
+      "recommendations": [
+        {
+          "severity": "CRITICAL",
+          "category": "Quality Assurance",
+          "finding": "25.3% negative sentiment in Product Quality (41 negative mentions).",
+          "action": "Read the cited product-quality feedback and verify recurring problems with the quality team before prioritizing inspections or fixes.",
+          "impact": "May help identify quality problems earlier; the batch does not establish a defect rate."
+        },
+        {
+          "severity": "HIGH",
+          "category": "Support Operations",
+          "finding": "84.4% negative sentiment regarding Customer Service.",
+          "action": "Reduce wait times with smart triage routing and train front-line agents on empathetic de-escalation.",
+          "impact": "May improve support satisfaction; measure outcomes after any process changes."
+        },
+        {
+          "severity": "HIGH",
+          "category": "Logistics & Fulfillment",
+          "finding": "26.2% negative sentiment in Delivery & Packaging (43 complaints).",
+          "action": "Inspect the negative delivery and packaging reviews to distinguish delays, handling and packaging issues before changing fulfillment practices.",
+          "impact": "May reduce transit-related returns; measure the effect after changes."
+        }
+      ]
+    },
+    {
+      "file": "Apple AirTag (Technology) - Amazon Product Reviews.csv",
+      "column": "Comments",
+      "total_rows": 99,
+      "total_samples": 99,
+      "skipped_rows": 0,
+      "analysis_engine": "BERT product-review sentiment (local ONNX)",
+      "needs_review": 35,
+      "mixed_reviews": 16,
+      "duplicate_reviews": 0,
+      "sentiment_counts": {
+        "Negative": 8,
+        "Neutral": 4,
+        "Positive": 87
+      },
+      "sentiment_percentages": {
+        "Negative": 8.1,
+        "Neutral": 4.0,
+        "Positive": 87.9
+      },
+      "aspect_counts": {
+        "Product Quality": 66,
+        "Customer Support": 0,
+        "Delivery & Packaging": 9,
+        "Pricing & Value": 18,
+        "Usability & UI": 29
+      },
+      "aspect_positive": {
+        "Product Quality": 44,
+        "Customer Support": 0,
+        "Delivery & Packaging": 7,
+        "Pricing & Value": 12,
+        "Usability & UI": 28
+      },
+      "aspect_negative": {
+        "Product Quality": 8,
+        "Customer Support": 0,
+        "Delivery & Packaging": 2,
+        "Pricing & Value": 4,
+        "Usability & UI": 1
+      },
+      "aspect_neutral": {
+        "Product Quality": 3,
+        "Customer Support": 0,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 0,
+        "Usability & UI": 0
+      },
+      "aspect_mixed": {
+        "Product Quality": 11,
+        "Customer Support": 0,
+        "Delivery & Packaging": 0,
+        "Pricing & Value": 2,
+        "Usability & UI": 0
+      },
+      "reviews_with_aspects": 74,
+      "reviews_without_aspects": 25,
+      "general_sentiment_counts": {
+        "Negative": 3,
+        "Neutral": 0,
+        "Positive": 22
+      },
+      "avg_confidence": 0.882,
+      "top_topics": {
+        "Topic 1: time / bad / film": 34,
+        "Topic 4: deliveri / regard / packag": 28,
+        "Topic 2: good / great / purchas": 27,
+        "Topic 5: product / realli / regard": 5,
+        "Topic 3: regard / custom / support": 5
+      },
+      "recommendations": [
+        {
+          "severity": "LOW",
+          "category": "Aspect Coverage",
+          "finding": "25 reviews have no recognized business aspect.",
+          "action": "Check the selected feedback column and read general or unrecognized reviews. Ask for specific details before assigning an issue to a business area.",
+          "impact": "Missing aspect matches do not mean there are no business problems."
+        },
+        {
+          "severity": "POSITIVE",
+          "category": "Positive Feedback Trend",
+          "finding": "Strong positive reception with only 8.1% negative feedback.",
+          "action": "Leverage satisfied customer base for referral incentives, testimonials, and case studies.",
+          "impact": "May support customer advocacy; positive sentiment alone does not establish loyalty."
+        }
+      ]
+    }
+  ],
+  "test_suite": {
+    "passed": 30,
+    "date": "2026-10-15"
+  },
+  "classic": {
+    "correct": 503,
+    "total": 594
+  },
+  "context": {
+    "correct": 538,
+    "total": 594
+  }
+}

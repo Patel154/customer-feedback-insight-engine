@@ -1,0 +1,9 @@
+{
+  "engine": "context",
+  "model": "nlptown/bert-base-multilingual-uncased-sentiment",
+  "onnx_repository": "Xenova/bert-base-multilingual-uncased-sentiment",
+  "revision": "fad9b372f770c208d2efaf00d02f2cb3b61ec450",
+  "features": "Contextual BERT embeddings; local SVM specialist for short neutral statements and mild criticism",
+  "selection": "Chosen and refined using English product-review development checks and observed benchmark errors. The public benchmark was consulted during iteration and is not a fresh independent test of this hybrid.",
+  "limitations": "Pretrained star-rating model mapped to three sentiments. Scores are uncalibrated estimates. Upstream training overlap with public benchmarks is unknown."
+}

@@ -1,0 +1,14 @@
+{
+  "pages": 5,
+  "page_size": "A4",
+  "document_class": "IEEEtran conference",
+  "author": "Monil Patel",
+  "all_fonts_embedded": true,
+  "overfull_boxes": 0,
+  "regression_tests_passed": 30,
+  "benchmark_correct": 538,
+  "benchmark_samples": 594,
+  "verified_date": "2026-10-15",
+  "pdf_sha256": "327c626f479896d3d5f31ae61e6056181685c46ee2a52afa1ec2d8eddba4f3ee",
+  "visual_review": "All five pages inspected; no clipped or overlapping content."
+}
